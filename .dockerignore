@@ -1,0 +1,6 @@
+*
+!pyproject.toml
+!setup.py
+!requirements
+!port_emission_inventory/*.py
+!tests/*.py

@@ -1,0 +1,9 @@
+version: "3.7"
+
+services:
+  test:
+    build: .
+    command: pytest
+    restart: "no"
+    logging:
+      driver: json-file
