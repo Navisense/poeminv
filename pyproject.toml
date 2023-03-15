@@ -1,0 +1,7 @@
+[build-system]
+requires = ["setuptools", "wheel"]
+
+[tool.pytest.ini_options]
+minversion = "7.0"
+addopts = "-v -l"
+testpaths = ["tests"]
