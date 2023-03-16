@@ -337,14 +337,15 @@ class TestTrack:
         positions = [
             self.make_pos_dict(0, 0, 0, None, 0, 0),
             self.make_pos_dict(
-                3600, (trk.MAX_CALCULATED_SPEED + 1) * 1852, 0, None, 0, 0)]
+                3600, (trk.Track.MAX_CALCULATED_SPEED + 1) * 1852, 0, None, 0,
+                0)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
             contains_exactly(
-                has_properties(sog=trk.MAX_CALCULATED_SPEED),
-                has_properties(sog=trk.MAX_CALCULATED_SPEED)))
+                has_properties(sog=trk.Track.MAX_CALCULATED_SPEED),
+                has_properties(sog=trk.Track.MAX_CALCULATED_SPEED)))
 
     def test_sanitized_falls_back_to_calculated_cog_on_invalid(
             self, stw_is_plausible, distance_covered_is_plausible,

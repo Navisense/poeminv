@@ -11,7 +11,6 @@ import pendulum
 import port_emission_inventory.utils as utils
 
 AVG_EARTH_RADIUS = 6370986
-MAX_CALCULATED_SPEED = 16
 
 
 def _attr_repr(self, attr_names):
@@ -248,6 +247,8 @@ class Track:
     of dictionaries with position data and sanity-checks them against one
     another.
     """
+    MAX_CALCULATED_SPEED = 16
+
     def __init__(self, *, position_class=Position, segment_class=Segment):
         self.position_class = position_class
         self.segment_class = segment_class
@@ -360,7 +361,7 @@ class Track:
                 acc += utils.m_to_nm(distance / hours)
             except ZeroDivisionError:
                 pass
-        return min(acc / len(pos_pairs), MAX_CALCULATED_SPEED)
+        return min(acc / len(pos_pairs), cls.MAX_CALCULATED_SPEED)
 
     @classmethod
     def _calculate_cog(cls, current, past, future):
