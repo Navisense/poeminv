@@ -1,4 +1,4 @@
-import utils
+import port_emission_inventory.utils as utils
 
 
 class TestOpDict:
