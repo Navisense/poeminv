@@ -29,6 +29,10 @@ def _attr_eq(self, other, attr_names):
     return True
 
 
+def always_true(*args, **kwargs):
+    return True
+
+
 def great_circle_distance(lon1, lat1, lon2, lat2):
     """Calculate the great-circle distance in meters."""
     lon1, lat1, lon2, lat2 = map(math.radians, (lon1, lat1, lon2, lat2))
@@ -257,9 +261,13 @@ class Track:
 
     @classmethod
     def sanitized_from_positions(
-        cls, position_dicts, sog_is_plausible: t.Callable[[float], bool],
+        cls,
+        position_dicts,
+        sog_is_plausible: t.Callable[[float], bool] = always_true,
         distance_covered_is_plausible: t.Callable[
-            [nr.Number, float, float, nr.Number, float, float], bool]):
+            [nr.Number, float, float, nr.Number, float, float],
+            bool] = always_true,
+    ):
         """
         Create a track from a list of dictionaries.
 
