@@ -220,6 +220,12 @@ class Track:
             sog = current['sog']
             cog = current['cog']
             heading = current['heading']
+            try:
+                tide_flow = current['tide_flow']
+                tide_bearing = current['tide_bearing']
+                assert tide_flow >= 0 and 0 <= tide_bearing < 360
+            except (KeyError, AssertionError, TypeError):
+                tide_flow, tide_bearing = 0, 0
             if sog is None or not stw_is_plausible(sog):
                 sanitizations['num_sogs'] += 1
                 sanitizations['sogs'].add(sog)
@@ -232,7 +238,7 @@ class Track:
                 heading = cog
             track.append_position(
                 pendulum.from_timestamp(current['ts']), current['lon'],
-                current['lat'], sog, cog, heading)
+                current['lat'], sog, cog, heading, tide_flow, tide_bearing)
         if any(sanitizations.values()):
             logging.getLogger(cls.__name__).debug(
                 'Sanitization during track creation: '

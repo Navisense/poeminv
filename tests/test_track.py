@@ -294,6 +294,25 @@ class TestTrack:
                     ts=pdts(2000001), lon=22, lat=23, sog=25, cog=27,
                     heading=211)))
 
+    def test_sanitized_parses_tide_information(
+            self, stw_is_plausible, distance_covered_is_plausible):
+        positions = [
+            self.make_pos_dict(1, 0, 0, 2, 0, 0)
+            | {'tide_flow': 1, 'tide_bearing': 0},
+            self.make_pos_dict(2, 0, 0, 3, 90, 0)
+            | {'tide_flow': 2, 'tide_bearing': 270}]
+        track = trk.Track.sanitized_from_positions(
+            positions, stw_is_plausible, distance_covered_is_plausible)
+        assert_that(
+            track.positions,
+            contains_exactly(
+                has_properties(
+                    ts=pdts(1), sog=2, cog=0, tide_flow=1, tide_bearing=0,
+                    stw=1),
+                has_properties(
+                    ts=pdts(2), sog=3, cog=90, tide_flow=2, tide_bearing=270,
+                    stw=5)))
+
     def test_sanitized_falls_back_to_calculated_sog_on_invalid(
             self, stw_is_plausible, distance_covered_is_plausible,
             patch_abs_lon_diff_distance):
@@ -418,6 +437,27 @@ class TestTrack:
             contains_exactly(
                 has_properties(sog=0), has_properties(sog=1),
                 has_properties(sog=4)))
+
+    def test_sanitized_ignores_invalid_tide_information(
+            self, stw_is_plausible, distance_covered_is_plausible):
+        positions = [
+            self.make_pos_dict(1, 0, 0, 2, 0, 0)
+            | {'tide_flow': 1, 'tide_bearing': -1},
+            self.make_pos_dict(2, 0, 0, 2, 0, 0)
+            | {'tide_flow': 1, 'tide_bearing': 361},
+            self.make_pos_dict(2, 0, 0, 2, 0, 0)
+            | {'tide_flow': 1, 'tide_bearing': None},
+            self.make_pos_dict(3, 0, 0, 2, 0, 0)
+            | {'tide_flow': -1, 'tide_bearing': 0},
+            self.make_pos_dict(3, 0, 0, 2, 0, 0)
+            | {'tide_flow': None, 'tide_bearing': 0},
+            self.make_pos_dict(4, 0, 0, 2, 0, 0)
+            | {'tide_flow': -1, 'tide_bearing': -1}]
+        track = trk.Track.sanitized_from_positions(
+            positions, stw_is_plausible, distance_covered_is_plausible)
+        assert_that(
+            track.positions,
+            only_contains(has_properties(tide_flow=0, tide_bearing=0, stw=2)))
 
     def test_duration_on_empty(self):
         assert trk.Track().duration == pendulum.duration(seconds=0)
