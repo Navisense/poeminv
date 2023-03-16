@@ -123,6 +123,21 @@ class Dynamics:
 
 
 class Position:
+    """
+    Position with data.
+
+    In addition to the attributes ts, lon, lat, sog, cog, heading, tide_flow,
+    and tide_bearing, there is a stw (speed through water) property that is
+    calculated from sog and tide data.
+
+    All speeds must be in kts, bearings in degrees. tide_bearing is the true
+    heading into which the tide is flowing, e.g. if it is 0, the water is
+    flowing from south to north.
+
+    The tide_flow and tide_bearing attributes can be changed after
+    construction, which causes the stw property to be recalculated to reflect
+    the changes.
+    """
     _attributes = (
         '_dynamics', 'lon', 'lat', 'cog', 'heading', 'tide_flow',
         'tide_bearing')
@@ -174,6 +189,13 @@ class Position:
 
 
 class Segment:
+    """
+    A segment between 2 positions.
+
+    Represents the connection between 2 individual positions. Has a distance
+    and a duration, which are calculated from coordinates and timestamps of the
+    positions.
+    """
     def __init__(self, start, end):
         if start.ts > end.ts:
             raise ValueError('Start must not be after end.')
@@ -196,6 +218,36 @@ class Segment:
 
 
 class Track:
+    """
+    A track of positions and segments between them.
+
+    Contains a list of positions, and for each successive pair a segment
+    between them representing their connection.
+
+    Each position represents one AIS position update and contains
+    - ts: epoch timestamp in seconds
+    - lon, lat: coordinates in degrees
+    - sog: speed over ground in knots
+    - cog, heading: course over ground and true heading in degrees
+    - tide_flow, tide_bearing: tide flow and true heading in kts and degrees
+    - stw: speed through water in kts, calculated from sog and tide data,
+      defaults to sog
+
+    Each position's tide_flow and tide_bearing can also be set later and the
+    stw property will be recalculated to reflect those changes.
+
+    Each segments has a distance and a duration that are derived from their
+    start and end positions.
+
+    The position_class and segment_class arguments specify which class to use
+    for positions and segments. This allows you to use your own subclasses with
+    this implementation.
+
+    Tracks can be created empty and filled via append_position(), but it may be
+    best to use the sanitized_from_positions() classmethod, which takes a list
+    of dictionaries with position data and sanity-checks them against one
+    another.
+    """
     def __init__(self, *, position_class=Position, segment_class=Segment):
         self.position_class = position_class
         self.segment_class = segment_class
@@ -204,9 +256,40 @@ class Track:
 
     @classmethod
     def sanitized_from_positions(
-        cls, position_dicts, stw_is_plausible: t.Callable[[float], bool],
+        cls, position_dicts, sog_is_plausible: t.Callable[[float], bool],
         distance_covered_is_plausible: t.Callable[
             [nr.Number, float, float, nr.Number, float, float], bool]):
+        """
+        Create a track from a list of dictionaries.
+
+        Expects a list of dictionaries, each containing the keys
+        - ts: epoch timestamp in seconds, not None
+        - lon, lat: not None
+        - sog, cog, heading: may be None, but must be valid (i.e. >=0, and <360
+            for cog/heading)
+        - tide_flow, tide_bearing: optional, but must be valid to be used (>=0,
+          and <360 for tide_bearing), default to 0
+
+        If any of sog, cog, or heading are None, or sog is implausible
+        according sog_is_plausible, values calculated from the sequence of
+        positions are used. The value used for a position is the average of
+        that in its adjacent segments. However, the calculated speed is capped
+        at MAX_CALCULATED_SPEED. If either of tide_flow and tide_bearing is
+        missing, None or invalid, both are set to 0.
+
+        Additionally, positions are discarded entirely if, according to
+        distance_covered_is_plausible, the vessel could not have plausibly
+        gotten from the average of the past few positions to the current
+        position in the claimed time.
+
+        sog_is_plausible must be a function that takes a speed over ground and
+        returns whether it is plausible that the ship went that fast.
+
+        distance_covered_is_plausible must be a function that takes 2 sets of
+        timestamp and coordinates (i.e. (ts1, lon1, lat1, ts2, lon2, lat2)) and
+        returns whether it's plausible the vessel covered that distance in that
+        time.
+        """
         sanitizations = {
             'num_discarded': 0, 'num_sogs': 0, 'num_cogs': 0,
             'num_headings': 0, 'sogs': set()}
@@ -226,7 +309,7 @@ class Track:
                 assert tide_flow >= 0 and 0 <= tide_bearing < 360
             except (KeyError, AssertionError, TypeError):
                 tide_flow, tide_bearing = 0, 0
-            if sog is None or not stw_is_plausible(sog):
+            if sog is None or not sog_is_plausible(sog):
                 sanitizations['num_sogs'] += 1
                 sanitizations['sogs'].add(sog)
                 sog = cls._calculate_sog(current, past, future)
