@@ -1,6 +1,4 @@
 import collections
-import dataclasses as dc
-import functools
 import logging
 import math
 import numbers as nr
@@ -31,6 +29,38 @@ def _attr_eq(self, other, attr_names):
 
 def always_true(*args, **kwargs):
     return True
+
+
+class Longitude(float):
+    """A number in the range [-180, 180)."""
+    def __new__(cls, value):
+        if not -180 <= value < 180:
+            raise ValueError('Longitudes must be in range [-180, 180).')
+        return super(cls, cls).__new__(cls, value)
+
+
+class Latitude(float):
+    """A number in the range [-90, 90]."""
+    def __new__(cls, value):
+        if not -90 <= value <= 90:
+            raise ValueError('Latitudes must be in range [-90, 90].')
+        return super(cls, cls).__new__(cls, value)
+
+
+class Speed(float):
+    """A non-negative number."""
+    def __new__(cls, value):
+        if value < 0:
+            raise ValueError('Speeds must be non-negative.')
+        return super(cls, cls).__new__(cls, value)
+
+
+class Bearing(float):
+    """A number in the range [0, 360)."""
+    def __new__(cls, value):
+        if not 0 <= value < 360:
+            raise ValueError('Bearings must be in range [0, 360).')
+        return super(cls, cls).__new__(cls, value)
 
 
 def great_circle_distance(lon1, lat1, lon2, lat2):
@@ -91,40 +121,6 @@ def surrounding_context_iter(iterable, past_context_size, future_context_size):
         past.append(current)
 
 
-@dc.dataclass
-class Dynamics:
-    _attributes = ('ts', 'sog', 'stw')
-
-    def __init__(self, ts, sog, cog, tide_flow, tide_bearing):
-        self.ts = ts
-        self.sog = sog
-        self.update_stw_from(cog, tide_flow, tide_bearing)
-
-    def __repr__(self):
-        return _attr_repr(self, self._attributes)
-
-    def __eq__(self, other):
-        return _attr_eq(self, other, self._attributes)
-
-    def update_stw_from(self, cog, tide_flow, tide_bearing):
-        self.stw = self._speed_through_water(
-            self.sog, cog, tide_flow, tide_bearing)
-
-    @staticmethod
-    def _speed_through_water(sog, cog, tide_flow, tide_bearing):
-        """
-        Calculate the speed through water considering tide current.
-
-        The speeds must be the same unit, which will also be the unit of the
-        output. cog and tide_bearing must be in degrees.
-        """
-        if not tide_flow:
-            return sog
-        diff_rad = math.radians(cog - tide_bearing)
-        return math.sqrt(
-            sog**2 + tide_flow**2 - (2 * sog * tide_flow * math.cos(diff_rad)))
-
-
 class Position:
     """
     Position with data.
@@ -142,19 +138,20 @@ class Position:
     the changes.
     """
     _attributes = (
-        '_dynamics', 'lon', 'lat', 'cog', 'heading', 'tide_flow',
-        'tide_bearing')
+        'ts', 'lon', 'lat', 'cog', 'heading', 'tide_flow', 'tide_bearing')
 
     def __init__(
             self, ts, lon, lat, sog, cog, heading, tide_flow=0,
             tide_bearing=0):
-        self._dynamics = Dynamics(ts, sog, cog, tide_flow, tide_bearing)
-        self.lon = lon
-        self.lat = lat
-        self.cog = cog
-        self.heading = heading
-        self._tide_flow = tide_flow
-        self._tide_bearing = tide_bearing
+        self.ts = ts
+        self.lon = Longitude(lon)
+        self.lat = Latitude(lat)
+        self._sog = Speed(sog)
+        self.cog = Bearing(cog)
+        self.heading = Bearing(heading)
+        self.tide_flow = Speed(tide_flow)
+        self.tide_bearing = Bearing(tide_bearing)
+        self._stw = None
 
     def __repr__(self):
         return _attr_repr(self, self._attributes)
@@ -163,32 +160,47 @@ class Position:
         return _attr_eq(self, other, self._attributes)
 
     @property
-    def ts(self):
-        return self._dynamics.ts
+    def sog(self):
+        return self._sog
 
     @property
-    def sog(self):
-        return self._dynamics.sog
+    def tide_flow(self):
+        return self._tide_flow
+
+    @tide_flow.setter
+    def tide_flow(self, value):
+        self._tide_flow = Speed(value)
+        self._stw = None
+
+    @property
+    def tide_bearing(self):
+        return self._tide_bearing
+
+    @tide_bearing.setter
+    def tide_bearing(self, value):
+        self._tide_bearing = Bearing(value)
+        self._stw = None
 
     @property
     def stw(self):
-        return self._dynamics.stw
+        if self._stw is None:
+            self._stw = self._speed_through_water(
+                self.sog, self.cog, self.tide_flow, self.tide_bearing)
+        return self._stw
 
-    def _get_recalc_property(self, *, attr):
-        return getattr(self, f'_{attr}')
+    @staticmethod
+    def _speed_through_water(sog, cog, tide_flow, tide_bearing):
+        """
+        Calculate the speed through water considering tide current.
 
-    def _set_recalc_property(self, value, *, attr):
-        setattr(self, f'_{attr}', value)
-        self.recalculate_dynamics()
-
-    for attr in ['tide_flow', 'tide_bearing']:
-        locals()[attr] = property(
-            functools.partial(_get_recalc_property, attr=attr),
-            functools.partial(_set_recalc_property, attr=attr))
-
-    def recalculate_dynamics(self):
-        self._dynamics.update_stw_from(
-            self.cog, self.tide_flow, self.tide_bearing)
+        The speeds must be the same unit, which will also be the unit of the
+        output. cog and tide_bearing must be in degrees.
+        """
+        if not tide_flow:
+            return sog
+        diff_rad = math.radians(cog - tide_bearing)
+        return math.sqrt(
+            sog**2 + tide_flow**2 - (2 * sog * tide_flow * math.cos(diff_rad)))
 
 
 class Segment:
@@ -197,17 +209,18 @@ class Segment:
 
     Represents the connection between 2 individual positions. Has a distance
     and a duration, which are calculated from coordinates and timestamps of the
-    positions.
+    positions. The distance can be passed on constructionn if it is already
+    known.
     """
-    def __init__(self, start, end):
+    def __init__(self, start, end, distance=None):
         if start.ts > end.ts:
             raise ValueError('Start must not be after end.')
         self.start = start
         self.end = end
-        self._distance = None
+        self._distance = distance
 
     def __repr__(self):
-        return _attr_repr(self, ('start', 'end', 'distance', 'duration'))
+        return _attr_repr(self, ('start', 'end'))
 
     @property
     def distance(self):
@@ -216,6 +229,7 @@ class Segment:
                 self.start.lon, self.start.lat, self.end.lon, self.end.lat)
         return self._distance
 
+    @property
     def duration(self):
         return self.end.ts.diff(self.start.ts)
 
@@ -394,7 +408,7 @@ class Track:
 
     @property
     def duration(self):
-        return sum((s.duration() for s in self.segments),
+        return sum((s.duration for s in self.segments),
                    start=pendulum.duration())
 
     def partial_track(self, start_ts, end_ts):

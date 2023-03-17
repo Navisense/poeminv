@@ -104,32 +104,22 @@ class TestSurroundingContextIter:
             assert len(future) == 0
 
 
-class TestDynamics:
-    def test_calculates_stw_on_construction(self):
-        stw_data = [((1, 0, 1, 180), 2), ((2, 0, 3, 180), 5),
-                    ((1, 0, 1, 0), 0), ((5, 0, 2, 0), 3),
-                    ((1, 0, 1, 90), pytest.approx(math.sqrt(2))),
-                    ((2, 0, 3, 90), pytest.approx(math.sqrt(13))),
-                    ((1, 0, 1, 270), pytest.approx(math.sqrt(2))),
-                    ((2, 0, 3, 270), pytest.approx(math.sqrt(13)))]
-        for dynamics_args, stw in stw_data:
-            assert trk.Dynamics(0, *dynamics_args).stw == stw
-
-    def test_updates_stw(self):
-        d = trk.Dynamics(0, 4, 0, 2, 180)
-        assert d.stw == 6
-        d.update_stw_from(45, 3, 135)
-        assert d.stw == 5
-
-
 class TestPosition:
-    def test_calculates_stw_on_construction(self):
-        pos = trk.Position(10, 11, 12, 6, 0, 14, 2, 180)
+    @pytest.mark.parametrize(
+        'sog,cog,tide_flow,tide_bearing,stw', [
+            (1, 0, 1, 180, 2), (2, 0, 3, 180, 5), (1, 0, 1, 0, 0),
+            (5, 0, 2, 0, 3), (1, 0, 1, 90, pytest.approx(math.sqrt(2))),
+            (2, 0, 3, 90, pytest.approx(math.sqrt(13))),
+            (1, 0, 1, 270, pytest.approx(math.sqrt(2))),
+            (2, 0, 3, 270, pytest.approx(math.sqrt(13)))])
+    def test_calculates_stw_on_construction(
+            self, sog, cog, tide_flow, tide_bearing, stw):
+        pos = trk.Position(10, 11, 12, sog, cog, 14, tide_flow, tide_bearing)
         assert_that(
             pos,
             has_properties(
-                ts=10, lon=11, lat=12, sog=6, cog=0, heading=14, tide_flow=2,
-                tide_bearing=180, stw=8))
+                ts=10, lon=11, lat=12, sog=sog, cog=cog, heading=14,
+                tide_flow=tide_flow, tide_bearing=tide_bearing, stw=stw))
 
     def test_recalculates_stw_on_changed_tide_flow(self):
         pos = trk.Position(10, 0, 0, 6, 0, 0, 2, 180)
@@ -151,22 +141,22 @@ class TestSegment:
         position2 = trk.Position(
             pendulum.from_timestamp(20), 21, 22, 23, 24, 25, 26, 27)
         segment = trk.Segment(position1, position2)
-        assert segment.duration() == d(10)
+        assert segment.duration == d(10)
 
 
 class TestTrack:
     @pytest.fixture
-    def patch_abs_lon_diff_distance(self, monkeypatch):
+    def patch_abs_lon_diff_distance_in_nm(self, monkeypatch):
         def abs_lon_diff_distance(lon1, lat1, lon2, lat2):
-            return abs(lon1 - lon2)
+            return abs(lon1 - lon2) * 1852
 
         monkeypatch.setattr(
             trk, 'great_circle_distance', abs_lon_diff_distance)
 
     @pytest.fixture
-    def patch_abs_lat_diff_bearing(self, monkeypatch):
+    def patch_abs_lat_diff_bearing_in_10_deg(self, monkeypatch):
         def abs_lat_diff_bearing(lon1, lat1, lon2, lat2):
-            return abs(lat1 - lat2)
+            return abs(lat1 - lat2) * 10
 
         monkeypatch.setattr(trk, 'bearing', abs_lat_diff_bearing)
 
@@ -315,12 +305,12 @@ class TestTrack:
 
     def test_sanitized_falls_back_to_calculated_sog_on_invalid(
             self, stw_is_plausible, distance_covered_is_plausible,
-            patch_abs_lon_diff_distance):
+            patch_abs_lon_diff_distance_in_nm):
         stw_is_plausible.return_value = False
         positions = [
             self.make_pos_dict(0, 0, 0, None, 0, 0),
-            self.make_pos_dict(3600, 10 * 1852, 0, 7.7, 0, 0),
-            self.make_pos_dict(7200, 22 * 1852, 0, None, 0, 0)]
+            self.make_pos_dict(3600, 10, 0, 7.7, 0, 0),
+            self.make_pos_dict(7200, 22, 0, None, 0, 0)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         stw_is_plausible.assert_called_once_with(7.7)
@@ -332,13 +322,12 @@ class TestTrack:
 
     def test_sanitized_limits_calculated_sog(
             self, stw_is_plausible, distance_covered_is_plausible,
-            patch_abs_lon_diff_distance):
+            patch_abs_lon_diff_distance_in_nm):
         stw_is_plausible.return_value = False
         positions = [
             self.make_pos_dict(0, 0, 0, None, 0, 0),
             self.make_pos_dict(
-                3600, (trk.Track.MAX_CALCULATED_SPEED + 1) * 1852, 0, None, 0,
-                0)]
+                3600, (trk.Track.MAX_CALCULATED_SPEED + 1), 0, None, 0, 0)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
@@ -349,26 +338,26 @@ class TestTrack:
 
     def test_sanitized_falls_back_to_calculated_cog_on_invalid(
             self, stw_is_plausible, distance_covered_is_plausible,
-            patch_abs_lat_diff_bearing):
+            patch_abs_lat_diff_bearing_in_10_deg):
         positions = [
             self.make_pos_dict(0, 0, 0, 0, None, 0),
-            self.make_pos_dict(3600, 0, 10, 0, None, 0),
-            self.make_pos_dict(7200, 0, 22, 0, None, 0)]
+            self.make_pos_dict(3600, 0, 1, 0, None, 0),
+            self.make_pos_dict(7200, 0, 2.25, 0, None, 0)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
             contains_exactly(
-                has_properties(cog=10), has_properties(cog=11),
-                has_properties(cog=12)))
+                has_properties(cog=10), has_properties(cog=11.25),
+                has_properties(cog=12.5)))
 
     def test_sanitized_fallback_to_calculated_cog_handles_north_crossing(
             self, stw_is_plausible, distance_covered_is_plausible,
-            patch_abs_lat_diff_bearing):
+            patch_abs_lat_diff_bearing_in_10_deg):
         positions = [
             self.make_pos_dict(0, 0, 0, 0, None, 0),
-            self.make_pos_dict(3600, 0, 340, 0, None, 0),
-            self.make_pos_dict(7200, 0, 350, 0, None, 0)]
+            self.make_pos_dict(3600, 0, 34, 0, None, 0),
+            self.make_pos_dict(7200, 0, 35, 0, None, 0)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
@@ -393,19 +382,19 @@ class TestTrack:
 
     def test_sanitized_falls_back_to_calculated_cog_on_both_invalid(
             self, stw_is_plausible, distance_covered_is_plausible,
-            patch_abs_lat_diff_bearing):
+            patch_abs_lat_diff_bearing_in_10_deg):
         positions = [
             self.make_pos_dict(0, 0, 0, 0, None, None),
-            self.make_pos_dict(3600, 0, 10, 0, None, None),
-            self.make_pos_dict(7200, 0, 22, 0, None, None)]
+            self.make_pos_dict(3600, 0, 1, 0, None, None),
+            self.make_pos_dict(7200, 0, 2.25, 0, None, None)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
             contains_exactly(
                 has_properties(cog=10, heading=10),
-                has_properties(cog=11, heading=11),
-                has_properties(cog=12, heading=12)))
+                has_properties(cog=11.25, heading=11.25),
+                has_properties(cog=12.5, heading=12.5)))
 
     def test_sanitized_falls_back_to_zero_on_single_position(
             self, stw_is_plausible, distance_covered_is_plausible):
@@ -420,19 +409,18 @@ class TestTrack:
             self, stw_is_plausible, distance_covered_is_plausible):
         distance_covered_is_plausible.side_effect = [True, False, False, True]
         positions = [
-            self.make_pos_dict(0, 10, 100, 0, None, None),
-            self.make_pos_dict(10, 20, 120, 1, None, None),
-            self.make_pos_dict(30, 25, 125, 2, None, None),
-            self.make_pos_dict(60, 35, 145, 3, None, None),
-            self.make_pos_dict(110, 70, 150, 4, None, None)]
+            self.make_pos_dict(0, 110, 10, 0, None, None),
+            self.make_pos_dict(10, 120, 20, 1, None, None),
+            self.make_pos_dict(30, 125, 25, 2, None, None),
+            self.make_pos_dict(60, 135, 45, 3, None, None),
+            self.make_pos_dict(110, 170, 50, 4, None, None)]
         track = trk.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
-        distance_calls = (distance_covered_is_plausible.call_args_list)
-        assert distance_calls == [
-            umock.call(0, 10, 100, 10, 20, 120),
-            umock.call(5, 15, 110, 30, 25, 125),
-            umock.call(40 / 3, 55 / 3, 115, 60, 35, 145),
-            umock.call(100 / 3, 80 / 3, 130, 110, 70, 150)]
+        assert distance_covered_is_plausible.call_args_list == [
+            umock.call(0, 110, 10, 10, 120, 20),
+            umock.call(5, 115, 15, 30, 125, 25),
+            umock.call(40 / 3, 355 / 3, 55 / 3, 60, 135, 45),
+            umock.call(100 / 3, 380 / 3, 30, 110, 170, 50)]
         assert_that(
             track.positions,
             contains_exactly(
