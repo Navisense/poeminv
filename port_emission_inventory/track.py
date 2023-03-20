@@ -127,7 +127,8 @@ class Position:
 
     In addition to the attributes ts, lon, lat, sog, cog, heading, tide_flow,
     and tide_bearing, there is a stw (speed through water) property that is
-    calculated from sog and tide data.
+    calculated from sog and tide data. stw can also be specified if it is
+    already known.
 
     All speeds must be in kts, bearings in degrees. tide_bearing is the true
     heading into which the tide is flowing, e.g. if it is 0, the water is
@@ -141,8 +142,8 @@ class Position:
         'ts', 'lon', 'lat', 'cog', 'heading', 'tide_flow', 'tide_bearing')
 
     def __init__(
-            self, ts, lon, lat, sog, cog, heading, tide_flow=0,
-            tide_bearing=0):
+            self, ts, lon, lat, sog, cog, heading, tide_flow=0, tide_bearing=0,
+            stw=None):
         self.ts = ts
         self.lon = Longitude(lon)
         self.lat = Latitude(lat)
@@ -151,7 +152,7 @@ class Position:
         self.heading = Bearing(heading)
         self.tide_flow = Speed(tide_flow)
         self.tide_bearing = Bearing(tide_bearing)
-        self._stw = None
+        self._stw = None if stw is None else Bearing(stw)
 
     def __repr__(self):
         return _attr_repr(self, self._attributes)
@@ -198,9 +199,10 @@ class Position:
         """
         if not tide_flow:
             return sog
-        diff_rad = math.radians(cog - tide_bearing)
-        return math.sqrt(
-            sog**2 + tide_flow**2 - (2 * sog * tide_flow * math.cos(diff_rad)))
+        cos_angle = math.cos(math.radians(cog - tide_bearing))
+        return Speed(
+            math.sqrt(
+                sog**2 + tide_flow**2 - (2 * sog * tide_flow * cos_angle)))
 
 
 class Segment:
