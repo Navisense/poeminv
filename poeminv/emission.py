@@ -17,21 +17,25 @@
 # repository. If not, see <https://www.gnu.org/licenses/>.
 
 import logging
+import numbers as nr
 
+import pendulum
+
+import poeminv.config as cfg
 import poeminv.event as ev
 import poeminv.util as util
 
 
 class SegmentDurationSanitizer:
     def __init__(
-            self, max_fuel_calc_distance_deviation,
-            max_fuel_calc_duration_increase_factor):
+            self, max_fuel_calc_distance_deviation: nr.Number,
+            max_fuel_calc_duration_increase_factor: nr.Number) -> None:
         self.max_fuel_calc_distance_deviation = (
             max_fuel_calc_distance_deviation)
         self.max_fuel_calc_duration_increase_factor = (
             max_fuel_calc_duration_increase_factor)
 
-    def adjusted_segment_hours(self, segment):
+    def adjusted_segment_hours(self, segment: ev.Segment) -> nr.Number:
         """
         Return adjusted segment duration in hours.
 
@@ -86,13 +90,17 @@ class EmissionCalculator:
     passed on construction. It needs a config in which it can look up emission
     factors and data related to the vessel.
     """
-    def __init__(self, segment_duration_sanitizer, config, vessel_info):
+    def __init__(
+            self, segment_duration_sanitizer: SegmentDurationSanitizer,
+            config: cfg.Config, vessel_info: cfg.VesselInfo) -> None:
         self.segment_duration_sanitizer = segment_duration_sanitizer
         self.config = config
         self.vessel_info = vessel_info
         self.logger = logging.getLogger(type(self).__name__)
 
-    def calculate_track_emissions(self, track, mode):
+    def calculate_track_emissions(
+            self, track: ev.Track,
+            mode: ev.Mode) -> util.OpDict[str, nr.Number]:
         """
         Calculate emissions caused on a track.
 
@@ -132,7 +140,9 @@ class EmissionCalculator:
                 f'along {track}.')
         return emissions
 
-    def segment_propulsion_emissions(self, segment, emission_config):
+    def segment_propulsion_emissions(
+            self, segment: ev.Segment, emission_config: cfg.EmissionConfig
+    ) -> util.OpDict[str, nr.Number]:
         segment_hours = (
             self.segment_duration_sanitizer.adjusted_segment_hours(segment))
         load = self._segment_load(segment)
@@ -146,7 +156,7 @@ class EmissionCalculator:
         end_load = self.propulsion_load_at_stw(segment.end.stw)
         return (start_load + end_load) / 2
 
-    def propulsion_load_at_stw(self, stw):
+    def propulsion_load_at_stw(self, stw: ev.Speed) -> nr.Number:
         fraction_of_max_speed = min(stw / self.vessel_info.max_speed, 1)
         return fraction_of_max_speed**3
 
@@ -168,7 +178,9 @@ class EmissionCalculator:
                 f'{self.vessel_info}.')
         return util.OpDict(emissions)
 
-    def calculate_mooring_emissions(self, duration, mode):
+    def calculate_mooring_emissions(
+            self, duration: pendulum.Duration,
+            mode: ev.Mode) -> util.OpDict[str, nr.Number]:
         """
         Calculate emissions caused during a mooring.
 

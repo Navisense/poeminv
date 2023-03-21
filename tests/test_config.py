@@ -189,6 +189,26 @@ class TestMatchConfig:
         assert not match_config.matches(ship_type='asdf', length=30, width=10)
 
 
+class TestEmissionConfig:
+    def test_calculate_emissions_for_energy(self):
+        config = cfg.EmissionConfig({
+            'propulsion': {'p1': 2, 'p2': 4}, 'auxiliary': {'p2': 8},
+            'boiler': {}}, {'auxiliary': 0, 'boiler': 0}, [])
+        actual_propulsion = config.emissions_from_energy('propulsion', 1.5)
+        actual_auxiliary = config.emissions_from_energy('auxiliary', 1.5)
+        actual_boiler = config.emissions_from_energy('boiler', 1.5)
+        assert actual_propulsion == {'p1': 3, 'p2': 6}
+        assert actual_auxiliary == {'p2': 12}
+        assert actual_boiler == {}
+
+    def test_engine_power(self):
+        config = cfg.EmissionConfig(
+            {'propulsion': {}, 'auxiliary': {}, 'boiler': {}},
+            {'auxiliary': 7, 'boiler': 8}, [])
+        assert config.engine_power('auxiliary') == 7
+        assert config.engine_power('boiler') == 8
+
+
 class TestEmissionConfigs:
     def make_configs(
             self, *, base_values=None, pollutants=None, engine_powers=None,
@@ -420,26 +440,6 @@ class TestEmissionConfigs:
         emission_config = configs.config_for(
             make_vessel_info(engine_rpm=100), ev.Mode.TRANSIT)
         assert emission_config.low_load_adjustment_factors == []
-
-
-class TestEmissionConfig:
-    def test_calculate_emissions_for_energy(self):
-        config = cfg.EmissionConfig({
-            'propulsion': {'p1': 2, 'p2': 4}, 'auxiliary': {'p2': 8},
-            'boiler': {}}, {'auxiliary': 0, 'boiler': 0}, [])
-        actual_propulsion = config.emissions_from_energy('propulsion', 1.5)
-        actual_auxiliary = config.emissions_from_energy('auxiliary', 1.5)
-        actual_boiler = config.emissions_from_energy('boiler', 1.5)
-        assert actual_propulsion == {'p1': 3, 'p2': 6}
-        assert actual_auxiliary == {'p2': 12}
-        assert actual_boiler == {}
-
-    def test_engine_power(self):
-        config = cfg.EmissionConfig(
-            {'propulsion': {}, 'auxiliary': {}, 'boiler': {}},
-            {'auxiliary': 7, 'boiler': 8}, [])
-        assert config.engine_power('auxiliary') == 7
-        assert config.engine_power('boiler') == 8
 
 
 class TestVesselInfoGuesser:

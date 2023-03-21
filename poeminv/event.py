@@ -16,7 +16,9 @@
 # along with this program, in the file LICENSE at the top level of this
 # repository. If not, see <https://www.gnu.org/licenses/>.
 
-import collections
+import collections as cl
+import collections.abc as ca
+import datetime
 import enum
 import logging
 import math
@@ -26,6 +28,8 @@ import typing as t
 import pendulum
 
 import poeminv.util as util
+
+_T = t.TypeVar('_T')
 
 AVG_EARTH_RADIUS = 6370986
 
@@ -46,7 +50,7 @@ def _attr_eq(self, other, attr_names):
     return True
 
 
-def always_true(*args, **kwargs):
+def always_true(*args, **kwargs) -> t.Literal[True]:
     return True
 
 
@@ -95,7 +99,9 @@ class Bearing(float):
         return super(cls, cls).__new__(cls, value)
 
 
-def great_circle_distance(lon1, lat1, lon2, lat2):
+def great_circle_distance(
+        lon1: Longitude, lat1: Latitude, lon2: Longitude,
+        lat2: Latitude) -> nr.Number:
     """Calculate the great-circle distance in meters."""
     lon1, lat1, lon2, lat2 = map(math.radians, (lon1, lat1, lon2, lat2))
     dlat = lat2 - lat1
@@ -105,7 +111,9 @@ def great_circle_distance(lon1, lat1, lon2, lat2):
     return 2 * AVG_EARTH_RADIUS * math.atan2(math.sqrt(d), math.sqrt(1 - d))
 
 
-def bearing(lon1, lat1, lon2, lat2):
+def bearing(
+        lon1: Longitude, lat1: Latitude, lon2: Longitude,
+        lat2: Latitude) -> Bearing:
     """
     Calculate bearing from one position to another relative to north.
 
@@ -115,19 +123,22 @@ def bearing(lon1, lat1, lon2, lat2):
     """
     target_lon = lon2 - lon1
     target_lat = lat2 - lat1
-    return (math.degrees(math.atan2(target_lon, target_lat)) + 360) % 360
+    return Bearing(
+        (math.degrees(math.atan2(target_lon, target_lat)) + 360) % 360)
 
 
-def average_bearing(b1, b2):
+def average_bearing(b1: Bearing, b2: Bearing) -> Bearing:
     if abs(b1 - b2) > 180:
         if b1 < b2:
             b1 += 360
         else:
             b2 += 360
-    return ((b1 + b2) / 2) % 360
+    return Bearing(((b1 + b2) / 2) % 360)
 
 
-def surrounding_context_iter(iterable, past_context_size, future_context_size):
+def surrounding_context_iter(
+    iterable: ca.Iterable[_T], past_context_size: int, future_context_size: int
+) -> ca.Iterator[tuple[cl.deque[_T], _T, cl.deque[_T]]]:
     """
     Iterate with past and future elements.
 
@@ -139,8 +150,8 @@ def surrounding_context_iter(iterable, past_context_size, future_context_size):
     iteration.
     """
     assert past_context_size >= 1
-    past = collections.deque(maxlen=past_context_size)
-    future = collections.deque(maxlen=future_context_size + 1)
+    past = cl.deque(maxlen=past_context_size)
+    future = cl.deque(maxlen=future_context_size + 1)
     for element in iterable:
         if len(future) == future.maxlen:
             current = future.popleft()
@@ -174,8 +185,9 @@ class Position:
         'ts', 'lon', 'lat', 'cog', 'heading', 'tide_flow', 'tide_bearing')
 
     def __init__(
-            self, ts, lon, lat, sog, cog, heading, tide_flow=0, tide_bearing=0,
-            stw=None):
+            self, ts: datetime.datetime, lon: Longitude, lat: Latitude,
+            sog: Speed, cog: Bearing, heading: Bearing, tide_flow: Speed = 0,
+            tide_bearing: Bearing = 0, stw: t.Optional[Speed] = None) -> None:
         self.ts = pendulum.instance(ts)
         self.lon = Longitude(lon)
         self.lat = Latitude(lat)
@@ -193,11 +205,11 @@ class Position:
         return _attr_eq(self, other, self._attributes)
 
     @property
-    def sog(self):
+    def sog(self) -> Speed:
         return self._sog
 
     @property
-    def tide_flow(self):
+    def tide_flow(self) -> Speed:
         return self._tide_flow
 
     @tide_flow.setter
@@ -206,7 +218,7 @@ class Position:
         self._stw = None
 
     @property
-    def tide_bearing(self):
+    def tide_bearing(self) -> Bearing:
         return self._tide_bearing
 
     @tide_bearing.setter
@@ -215,7 +227,7 @@ class Position:
         self._stw = None
 
     @property
-    def stw(self):
+    def stw(self) -> Speed:
         if self._stw is None:
             self._stw = self._speed_through_water(
                 self.sog, self.cog, self.tide_flow, self.tide_bearing)
@@ -246,7 +258,9 @@ class Segment:
     positions. The distance can be passed on constructionn if it is already
     known.
     """
-    def __init__(self, start, end, distance=None):
+    def __init__(
+            self, start: Position, end: Position,
+            distance: t.Optional[nr.Number] = None):
         if start.ts > end.ts:
             raise ValueError('Start must not be after end.')
         self.start = start
@@ -257,7 +271,7 @@ class Segment:
         return _attr_repr(self, ('start', 'end'))
 
     @property
-    def distance(self):
+    def distance(self) -> nr.Number:
         """The segment's distance in meters."""
         if self._distance is None:
             self._distance = great_circle_distance(
@@ -265,7 +279,7 @@ class Segment:
         return self._distance
 
     @property
-    def duration(self):
+    def duration(self) -> pendulum.Duration:
         return self.end.ts.diff(self.start.ts)
 
 
@@ -302,7 +316,9 @@ class Track:
     """
     MAX_CALCULATED_SPEED = 16
 
-    def __init__(self, *, position_class=Position, segment_class=Segment):
+    def __init__(
+            self, *, position_class: t.Type[Position] = Position,
+            segment_class: t.Type[Segment] = Segment) -> None:
         self.position_class = position_class
         self.segment_class = segment_class
         self.positions = []
@@ -311,12 +327,12 @@ class Track:
     @classmethod
     def sanitized_from_positions(
         cls,
-        position_dicts,
-        sog_is_plausible: t.Callable[[float], bool] = always_true,
+        position_dicts: ca.Sequence[ca.Mapping[str, t.Any]],
+        sog_is_plausible: t.Callable[[Speed], bool] = always_true,
         distance_covered_is_plausible: t.Callable[
-            [nr.Number, float, float, nr.Number, float, float],
+            [nr.Number, Longitude, Latitude, nr.Number, Longitude, Latitude],
             bool] = always_true,
-    ):
+    ) -> t.Self:
         """
         Create a track from a list of dictionaries.
 
@@ -346,7 +362,7 @@ class Track:
         distance_covered_is_plausible must be a function that takes 2 sets of
         timestamp and coordinates (i.e. (ts1, lon1, lat1, ts2, lon2, lat2)) and
         returns whether it's plausible the vessel covered that distance in that
-        time.
+        time. Timestamps here are seconds since the epoch.
         """
         sanitizations = {
             'num_discarded': 0, 'num_sogs': 0, 'num_cogs': 0,
@@ -448,18 +464,19 @@ class Track:
             f'{self.positions[0]} to {self.positions[-1]}>')
 
     @property
-    def distance(self):
+    def distance(self) -> nr.Number:
         """The track's total distance in meters."""
         return sum(s.distance for s in self.segments)
 
     @property
-    def duration(self):
+    def duration(self) -> pendulum.Duration:
         return sum((s.duration for s in self.segments),
                    start=pendulum.duration())
 
     def append_position(
-            self, ts, lon, lat, sog, cog, heading, tide_flow=0,
-            tide_bearing=0):
+            self, ts: datetime.datetime, lon: Longitude, lat: Latitude,
+            sog: Speed, cog: Bearing, heading: Bearing, tide_flow: Speed = 0,
+            tide_bearing: Bearing = 0) -> None:
         """
         Append a position.
 

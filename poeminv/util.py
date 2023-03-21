@@ -17,6 +17,7 @@
 # repository. If not, see <https://www.gnu.org/licenses/>.
 
 import enum
+import typing as t
 import warnings
 
 
@@ -35,17 +36,18 @@ class OpDict(dict):
     left-hand-side operand. Where those keys also exist in the right hand side,
     the result values are the product of both corresponding values.
     """
-    def __init__(self, *args, **kwargs):
-        self._start_value_factory = kwargs.pop('start_value_factory', int)
+    def __init__(
+            self, *args, start_value_factory: type = int, **kwargs) -> None:
+        self._start_value_factory = start_value_factory
         super().__init__(*args, **kwargs)
 
-    def __add__(self, other):
+    def __add__(self, other: dict) -> t.Self:
         return type(self)({
             k: self.get(k, self._start_value_factory())
             + other.get(k, self._start_value_factory())
             for k in set(self) | set(other)})
 
-    def __mul__(self, other):
+    def __mul__(self, other: dict) -> t.Self:
         product = {}
         for key, value in self.items():
             try:
