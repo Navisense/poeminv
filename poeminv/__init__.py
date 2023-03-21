@@ -16,5 +16,15 @@
 # along with this program, in the file LICENSE at the top level of this
 # repository. If not, see <https://www.gnu.org/licenses/>.
 
-from poeminv.emission import EmissionCalculator, Mode, SegmentDurationSanitizer
-from poeminv.event import Position, Segment, Track
+from poeminv.config import (
+    Config,
+    Range,
+    VesselInfo,
+    VALID_ENGINE_CATEGORIES,
+    VALID_ENGINE_NOX_TIERS,
+    VALID_ENGINE_GROUPS,
+    VALID_SHIP_SIZE_UNITS,
+    VALID_SHIP_TYPE_SIZE_UNITS,
+)
+from poeminv.emission import EmissionCalculator, SegmentDurationSanitizer
+from poeminv.event import Mode, Position, Segment, Track

@@ -17,6 +17,7 @@
 # repository. If not, see <https://www.gnu.org/licenses/>.
 
 import collections
+import enum
 import logging
 import math
 import numbers as nr
@@ -47,6 +48,19 @@ def _attr_eq(self, other, attr_names):
 
 def always_true(*args, **kwargs):
     return True
+
+
+class Mode(enum.StrEnum):
+    """
+    Ship operating mode.
+
+    The mode encapsulates assumptions about which engines are operating at what
+    loads.
+    """
+    TRANSIT: str = enum.auto()
+    MANEUVERING: str = enum.auto()
+    HOTELLING: str = enum.auto()
+    ANCHORAGE: str = enum.auto()
 
 
 class Longitude(float):
