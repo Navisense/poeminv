@@ -1,0 +1,29 @@
+default:
+  image: 958883103414.dkr.ecr.eu-central-1.amazonaws.com/ci-toolkit:0
+
+stages:
+  - test
+  - tag
+
+test:
+  stage: test
+  except:
+    - /stash\/.*/
+  services:
+    - docker:dind
+  script:
+    - docker-compose -f docker-compose.test.yml down
+    - docker-compose -f docker-compose.test.yml up --build --exit-code-from=test
+
+tag:
+  stage: tag
+  only:
+    - main
+  script:
+    - |
+      version=$(python app/setup.py --version)
+      git config user.email "$GITLAB_USER_EMAIL"
+      git config user.name "$GITLAB_USER_NAME"
+      git remote set-url origin ssh://git@$CI_SERVER_HOST:$GITLAB_SSH_PORT/$CI_PROJECT_NAMESPACE/$CI_PROJECT_NAME.git
+      git tag $version
+      git push -o ci.skip origin $version
