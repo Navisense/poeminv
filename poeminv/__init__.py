@@ -28,3 +28,4 @@ from poeminv.config import (
 )
 from poeminv.emission import EmissionCalculator, SegmentDurationSanitizer
 from poeminv.event import Mode, Position, Segment, Track
+from poeminv.util import OpDict
