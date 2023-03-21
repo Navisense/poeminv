@@ -18,13 +18,13 @@
 
 from poeminv.config import (
     Config,
+    EngineCategory,
+    EngineNOxTier,
+    EngineGroup,
     Range,
-    VesselInfo,
-    VALID_ENGINE_CATEGORIES,
-    VALID_ENGINE_NOX_TIERS,
-    VALID_ENGINE_GROUPS,
-    VALID_SHIP_SIZE_UNITS,
+    ShipSizeUnit,
     VALID_SHIP_TYPE_SIZE_UNITS,
+    VesselInfo,
 )
 from poeminv.emission import EmissionCalculator, SegmentDurationSanitizer
 from poeminv.event import Mode, Position, Segment, Track

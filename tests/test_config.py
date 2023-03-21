@@ -38,9 +38,9 @@ def low_load_adjustment_factors(*range_factors):
 def make_vessel_info_attrs():
     import numbers
     value_counter = it.count(1)
-    engine_categories = it.cycle(cfg.VALID_ENGINE_CATEGORIES)
+    engine_categories = it.cycle(cfg.EngineCategory)
     ship_types = it.cycle(cfg.VALID_SHIP_TYPE_SIZE_UNITS)
-    engine_nox_tiers = it.cycle(cfg.VALID_ENGINE_NOX_TIERS)
+    engine_nox_tiers = it.cycle(cfg.EngineNOxTier)
 
     def factory(*, only_attrs=None, **kwargs):
         attrs = {}

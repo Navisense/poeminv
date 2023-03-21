@@ -18,6 +18,7 @@
 
 import abc
 import dataclasses as dc
+import enum
 import itertools as it
 import logging
 import numbers as nr
@@ -25,8 +26,6 @@ import numbers as nr
 import poeminv.event as ev
 import poeminv.util as util
 
-VALID_ENGINE_GROUPS = util.ValueContainsStrEnum(
-    'VALID_ENGINE_GROUPS', ['propulsion', 'auxiliary', 'boiler'])
 VALID_SHIP_TYPE_SIZE_UNITS = {
     'barge': ['n/a'],
     'crew_supply': ['n/a'],
@@ -56,15 +55,26 @@ VALID_SHIP_TYPE_SIZE_UNITS = {
     'roro': ['gt'],
     'vehicle_carrier': ['number_vehicles'],
     'misc': ['n/a'],}
-VALID_SHIP_SIZE_UNITS = util.ValueContainsStrEnum(
-    'VALID_SHIP_SIZE_UNITS', [
+
+ShipSizeUnit = util.ValueContainsStrEnum(
+    'ShipSizeUnit', [
         unit.upper()
         for unit in set(it.chain(*VALID_SHIP_TYPE_SIZE_UNITS.values()))])
-VALID_ENGINE_CATEGORIES = util.ValueContainsStrEnum(
-    'VALID_ENGINE_CATEGORIES', ['c1', 'c2', 'c3'])
 
 
-class VALID_ENGINE_NOX_TIERS(util.ValueContainsIntEnum):
+class EngineGroup(util.ValueContainsStrEnum):
+    PROPULSION: str = enum.auto()
+    AUXILIARY: str = enum.auto()
+    BOILER: str = enum.auto()
+
+
+class EngineCategory(util.ValueContainsStrEnum):
+    C1: str = enum.auto()
+    C2: str = enum.auto()
+    C3: str = enum.auto()
+
+
+class EngineNOxTier(util.ValueContainsIntEnum):
     UNCLASSIFIED: int = 0
     TIER1: int = 1
     TIER2: int = 2
@@ -87,8 +97,8 @@ class VesselInfo:
             assert self.max_speed > 0
             assert self.engine_kw > 0
             assert self.engine_rpm > 0
-            assert self.engine_category in VALID_ENGINE_CATEGORIES
-            assert self.engine_nox_tier in VALID_ENGINE_NOX_TIERS
+            assert self.engine_category in EngineCategory
+            assert self.engine_nox_tier in EngineNOxTier
             assert self.size >= 0
             assert self.size_unit in VALID_SHIP_TYPE_SIZE_UNITS[self.ship_type]
         except (AssertionError, TypeError) as e:
@@ -123,16 +133,16 @@ class Criterion(abc.ABC):
                 VALID_SHIP_TYPE_SIZE_UNITS):
             raise ValueError(f'Invalid ship type for {self.name}.')
         if self.name == 'size_unit' and not self._value_is_one_of(
-                VALID_SHIP_SIZE_UNITS):
+                ShipSizeUnit):
             raise ValueError(f'Invalid size unit for {self.name}.')
         if self.name == 'engine_category' and not self._value_is_one_of(
-                VALID_ENGINE_CATEGORIES):
+                EngineCategory):
             raise ValueError(f'Invalid engine category for {self.name}.')
         if self.name == 'engine_nox_tier' and not self._value_is_one_of(
-                VALID_ENGINE_NOX_TIERS):
+                EngineNOxTier):
             raise ValueError(f'Invalid engine NOx tier for {self.name}.')
         if self.name == 'engine_group' and not self._value_is_one_of(
-                VALID_ENGINE_GROUPS):
+                EngineGroup):
             raise ValueError(f'Invalid engine group for {self.name}.')
 
     @abc.abstractmethod
