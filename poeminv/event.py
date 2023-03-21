@@ -6,7 +6,7 @@ import typing as t
 
 import pendulum
 
-import port_emission_inventory.utils as utils
+import poeminv.util as util
 
 AVG_EARTH_RADIUS = 6370986
 
@@ -382,7 +382,7 @@ class Track:
                 left['lon'], left['lat'], right['lon'], right['lat'])
             hours = (right['ts'] - left['ts']) / 3600
             try:
-                acc += utils.m_to_nm(distance / hours)
+                acc += util.m_to_nm(distance / hours)
             except ZeroDivisionError:
                 pass
         return min(acc / len(pos_pairs), cls.MAX_CALCULATED_SPEED)

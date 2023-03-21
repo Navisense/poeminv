@@ -5,7 +5,7 @@ from hamcrest import *
 import pendulum
 import pytest
 
-import port_emission_inventory.track as trk
+import poeminv.event as event
 
 
 def pdts(t):
@@ -20,70 +20,71 @@ def test_great_circle_distance():
     # Reference distance from luftlinie.org.
     hh = 9.992196, 53.553406
     nyc = -74.005974, 40.714268
-    hh_nyc = trk.great_circle_distance(*hh, *nyc)
+    hh_nyc = event.great_circle_distance(*hh, *nyc)
     assert hh_nyc == pytest.approx(6129310, abs=1000)
 
     lombardsbruecke = 9.9978, 53.5568
     kennedybruecke = 9.9984, 53.5576
-    bridge_dist = trk.great_circle_distance(*lombardsbruecke, *kennedybruecke)
+    bridge_dist = event.great_circle_distance(
+        *lombardsbruecke, *kennedybruecke)
     assert bridge_dist == pytest.approx(97, abs=1)
 
 
 def test_bearing():
-    assert trk.bearing(0, 0, 0, 0) == 0
-    assert trk.bearing(0, 0, 0, 1) == 0
-    assert trk.bearing(0, 0, 0, 10) == 0
-    assert trk.bearing(0, 0, 1, 1) == 45
-    assert trk.bearing(0, 0, 10, 10) == 45
-    assert trk.bearing(0, 0, 1, 0) == 90
-    assert trk.bearing(0, 0, 10, 0) == 90
-    assert trk.bearing(0, 0, 1, -1) == 135
-    assert trk.bearing(0, 0, 10, -10) == 135
-    assert trk.bearing(0, 0, 0, -1) == 180
-    assert trk.bearing(0, 0, 0, -10) == 180
-    assert trk.bearing(0, 0, -1, -1) == 225
-    assert trk.bearing(0, 0, -10, -10) == 225
-    assert trk.bearing(0, 0, -1, 0) == 270
-    assert trk.bearing(0, 0, -10, 0) == 270
-    assert trk.bearing(0, 0, -1, 1) == 315
-    assert trk.bearing(0, 0, -10, 10) == 315
+    assert event.bearing(0, 0, 0, 0) == 0
+    assert event.bearing(0, 0, 0, 1) == 0
+    assert event.bearing(0, 0, 0, 10) == 0
+    assert event.bearing(0, 0, 1, 1) == 45
+    assert event.bearing(0, 0, 10, 10) == 45
+    assert event.bearing(0, 0, 1, 0) == 90
+    assert event.bearing(0, 0, 10, 0) == 90
+    assert event.bearing(0, 0, 1, -1) == 135
+    assert event.bearing(0, 0, 10, -10) == 135
+    assert event.bearing(0, 0, 0, -1) == 180
+    assert event.bearing(0, 0, 0, -10) == 180
+    assert event.bearing(0, 0, -1, -1) == 225
+    assert event.bearing(0, 0, -10, -10) == 225
+    assert event.bearing(0, 0, -1, 0) == 270
+    assert event.bearing(0, 0, -10, 0) == 270
+    assert event.bearing(0, 0, -1, 1) == 315
+    assert event.bearing(0, 0, -10, 10) == 315
 
-    assert trk.bearing(5, 7, 5, 7) == 0
-    assert trk.bearing(5, 7, 5, 8) == 0
-    assert trk.bearing(5, 7, 5, 17) == 0
-    assert trk.bearing(5, 7, 6, 8) == 45
-    assert trk.bearing(5, 7, 15, 17) == 45
-    assert trk.bearing(5, 7, 6, 7) == 90
-    assert trk.bearing(5, 7, 15, 7) == 90
-    assert trk.bearing(5, 7, 6, 6) == 135
-    assert trk.bearing(5, 7, 15, -3) == 135
-    assert trk.bearing(5, 7, 5, 6) == 180
-    assert trk.bearing(5, 7, 5, -3) == 180
-    assert trk.bearing(5, 7, 4, 6) == 225
-    assert trk.bearing(5, 7, -5, -3) == 225
-    assert trk.bearing(5, 7, 4, 7) == 270
-    assert trk.bearing(5, 7, -5, 7) == 270
-    assert trk.bearing(5, 7, 4, 8) == 315
-    assert trk.bearing(5, 7, -5, 17) == 315
+    assert event.bearing(5, 7, 5, 7) == 0
+    assert event.bearing(5, 7, 5, 8) == 0
+    assert event.bearing(5, 7, 5, 17) == 0
+    assert event.bearing(5, 7, 6, 8) == 45
+    assert event.bearing(5, 7, 15, 17) == 45
+    assert event.bearing(5, 7, 6, 7) == 90
+    assert event.bearing(5, 7, 15, 7) == 90
+    assert event.bearing(5, 7, 6, 6) == 135
+    assert event.bearing(5, 7, 15, -3) == 135
+    assert event.bearing(5, 7, 5, 6) == 180
+    assert event.bearing(5, 7, 5, -3) == 180
+    assert event.bearing(5, 7, 4, 6) == 225
+    assert event.bearing(5, 7, -5, -3) == 225
+    assert event.bearing(5, 7, 4, 7) == 270
+    assert event.bearing(5, 7, -5, 7) == 270
+    assert event.bearing(5, 7, 4, 8) == 315
+    assert event.bearing(5, 7, -5, 17) == 315
 
 
 def test_average_bearing():
-    assert trk.average_bearing(10, 20) == 15
-    assert trk.average_bearing(350, 10) == 0
-    assert trk.average_bearing(340, 10) == 355
-    assert trk.average_bearing(350, 20) == 5
-    assert trk.average_bearing(10, 200) == 285
-    assert trk.average_bearing(200, 200) == 200
-    assert trk.average_bearing(200, 240) == 220
+    assert event.average_bearing(10, 20) == 15
+    assert event.average_bearing(350, 10) == 0
+    assert event.average_bearing(340, 10) == 355
+    assert event.average_bearing(350, 20) == 5
+    assert event.average_bearing(10, 200) == 285
+    assert event.average_bearing(200, 200) == 200
+    assert event.average_bearing(200, 240) == 220
 
 
 class TestSurroundingContextIter:
     def test_empty(self):
-        assert list(trk.surrounding_context_iter([], 2, 2)) == []
+        assert list(event.surrounding_context_iter([], 2, 2)) == []
 
     def test_single(self):
         enumerated_contexts = enumerate(
-            trk.surrounding_context_iter([5], 10, 10))
+            event.surrounding_context_iter([5], 10, 10))
         for i, (past, current, future) in enumerated_contexts:
             assert i == 0
             assert len(past) == len(future) == 0
@@ -91,7 +92,7 @@ class TestSurroundingContextIter:
 
     def test_plenty(self):
         enumerated_contexts = enumerate(
-            trk.surrounding_context_iter(
+            event.surrounding_context_iter(
                 range(10), past_context_size=2, future_context_size=3))
         for i, (past, current, future) in enumerated_contexts:
             assert i == current
@@ -99,7 +100,7 @@ class TestSurroundingContextIter:
             assert list(future) == [j for j in range(i + 1, i + 4) if j < 10]
 
     def test_supports_only_past(self):
-        for _, _, future in trk.surrounding_context_iter(
+        for _, _, future in event.surrounding_context_iter(
                 range(10), past_context_size=2, future_context_size=0):
             assert len(future) == 0
 
@@ -114,7 +115,7 @@ class TestPosition:
             (2, 0, 3, 270, pytest.approx(math.sqrt(13)))])
     def test_calculates_stw_on_construction(
             self, sog, cog, tide_flow, tide_bearing, stw):
-        pos = trk.Position(10, 11, 12, sog, cog, 14, tide_flow, tide_bearing)
+        pos = event.Position(10, 11, 12, sog, cog, 14, tide_flow, tide_bearing)
         assert_that(
             pos,
             has_properties(
@@ -122,13 +123,13 @@ class TestPosition:
                 tide_flow=tide_flow, tide_bearing=tide_bearing, stw=stw))
 
     def test_recalculates_stw_on_changed_tide_flow(self):
-        pos = trk.Position(10, 0, 0, 6, 0, 0, 2, 180)
+        pos = event.Position(10, 0, 0, 6, 0, 0, 2, 180)
         assert pos.stw == 8
         pos.tide_flow = 3
         assert pos.stw == 9
 
     def test_recalculates_stw_on_changed_tide_bearing(self):
-        pos = trk.Position(10, 0, 0, 4, 0, 0, 3, 180)
+        pos = event.Position(10, 0, 0, 4, 0, 0, 3, 180)
         assert pos.stw == 7
         pos.tide_bearing = 270
         assert pos.stw == 5
@@ -136,11 +137,11 @@ class TestPosition:
 
 class TestSegment:
     def test_duration(self):
-        position1 = trk.Position(
+        position1 = event.Position(
             pendulum.from_timestamp(10), 11, 12, 13, 14, 15, 16, 17)
-        position2 = trk.Position(
+        position2 = event.Position(
             pendulum.from_timestamp(20), 21, 22, 23, 24, 25, 26, 27)
-        segment = trk.Segment(position1, position2)
+        segment = event.Segment(position1, position2)
         assert segment.duration == d(10)
 
 
@@ -151,14 +152,14 @@ class TestTrack:
             return abs(lon1 - lon2) * 1852
 
         monkeypatch.setattr(
-            trk, 'great_circle_distance', abs_lon_diff_distance)
+            event, 'great_circle_distance', abs_lon_diff_distance)
 
     @pytest.fixture
     def patch_abs_lat_diff_bearing_in_10_deg(self, monkeypatch):
         def abs_lat_diff_bearing(lon1, lat1, lon2, lat2):
             return abs(lat1 - lat2) * 10
 
-        monkeypatch.setattr(trk, 'bearing', abs_lat_diff_bearing)
+        monkeypatch.setattr(event, 'bearing', abs_lat_diff_bearing)
 
     @pytest.fixture
     def stw_is_plausible(self):
@@ -175,20 +176,20 @@ class TestTrack:
             'heading': heading}
 
     def test_partial_track_on_empty(self):
-        track = trk.Track()
+        track = event.Track()
         actual = track.partial_track(pdts(0), pdts(1000))
         assert actual.positions == []
         assert actual.segments == []
 
     def test_partial_track_on_same_bounds_returns_self(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(0), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
         assert track.partial_track(pdts(0), pdts(20)) is track
 
     def test_partial_track_on_subset(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(0), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
@@ -199,7 +200,7 @@ class TestTrack:
         assert actual.segments == track.segments[1:3]
 
     def test_partial_track_on_mismatched_timeframe(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(0), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
@@ -208,7 +209,7 @@ class TestTrack:
         assert actual.segments == []
 
     def test_partial_track_on_empty_subset(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(0), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
@@ -217,7 +218,7 @@ class TestTrack:
         assert actual.segments == []
 
     def test_partial_track_on_single_position(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(0), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
@@ -226,7 +227,7 @@ class TestTrack:
         assert actual.segments == []
 
     def test_partial_track_on_beyond_start(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(100), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(110), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(120), 21, 22, 23, 24, 25, 26, 27)
@@ -237,7 +238,7 @@ class TestTrack:
         assert actual.segments == track.segments[:3]
 
     def test_partial_track_on_beyond_end(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(0), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
@@ -249,14 +250,14 @@ class TestTrack:
 
     def test_sanitized_parses_empty(
             self, stw_is_plausible, distance_covered_is_plausible):
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             [], stw_is_plausible, distance_covered_is_plausible)
         assert track.positions == []
 
     def test_sanitized_parses_single_position(
             self, stw_is_plausible, distance_covered_is_plausible):
         positions = [self.make_pos_dict(1, 2, 3, 5, 7, 11)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -270,7 +271,7 @@ class TestTrack:
             self.make_pos_dict(1, 2, 3, 5, 7, 11),
             self.make_pos_dict(1000001, 12, 13, 15, 17, 111),
             self.make_pos_dict(2000001, 22, 23, 25, 27, 211)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -291,7 +292,7 @@ class TestTrack:
             | {'tide_flow': 1, 'tide_bearing': 0},
             self.make_pos_dict(2, 0, 0, 3, 90, 0)
             | {'tide_flow': 2, 'tide_bearing': 270}]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -311,7 +312,7 @@ class TestTrack:
             self.make_pos_dict(0, 0, 0, None, 0, 0),
             self.make_pos_dict(3600, 10, 0, 7.7, 0, 0),
             self.make_pos_dict(7200, 22, 0, None, 0, 0)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         stw_is_plausible.assert_called_once_with(7.7)
         assert_that(
@@ -327,14 +328,14 @@ class TestTrack:
         positions = [
             self.make_pos_dict(0, 0, 0, None, 0, 0),
             self.make_pos_dict(
-                3600, (trk.Track.MAX_CALCULATED_SPEED + 1), 0, None, 0, 0)]
-        track = trk.Track.sanitized_from_positions(
+                3600, (event.Track.MAX_CALCULATED_SPEED + 1), 0, None, 0, 0)]
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
             contains_exactly(
-                has_properties(sog=trk.Track.MAX_CALCULATED_SPEED),
-                has_properties(sog=trk.Track.MAX_CALCULATED_SPEED)))
+                has_properties(sog=event.Track.MAX_CALCULATED_SPEED),
+                has_properties(sog=event.Track.MAX_CALCULATED_SPEED)))
 
     def test_sanitized_falls_back_to_calculated_cog_on_invalid(
             self, stw_is_plausible, distance_covered_is_plausible,
@@ -343,7 +344,7 @@ class TestTrack:
             self.make_pos_dict(0, 0, 0, 0, None, 0),
             self.make_pos_dict(3600, 0, 1, 0, None, 0),
             self.make_pos_dict(7200, 0, 2.25, 0, None, 0)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -358,7 +359,7 @@ class TestTrack:
             self.make_pos_dict(0, 0, 0, 0, None, 0),
             self.make_pos_dict(3600, 0, 34, 0, None, 0),
             self.make_pos_dict(7200, 0, 35, 0, None, 0)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -372,7 +373,7 @@ class TestTrack:
             self.make_pos_dict(0, 0, 0, 0, 1, None),
             self.make_pos_dict(3600, 0, 0, 0, 2, None),
             self.make_pos_dict(7200, 0, 0, 0, 3, None)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -387,7 +388,7 @@ class TestTrack:
             self.make_pos_dict(0, 0, 0, 0, None, None),
             self.make_pos_dict(3600, 0, 1, 0, None, None),
             self.make_pos_dict(7200, 0, 2.25, 0, None, None)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -399,7 +400,7 @@ class TestTrack:
     def test_sanitized_falls_back_to_zero_on_single_position(
             self, stw_is_plausible, distance_covered_is_plausible):
         positions = [self.make_pos_dict(0, 0, 0, None, None, None)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
@@ -414,7 +415,7 @@ class TestTrack:
             self.make_pos_dict(30, 125, 25, 2, None, None),
             self.make_pos_dict(60, 135, 45, 3, None, None),
             self.make_pos_dict(110, 170, 50, 4, None, None)]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert distance_covered_is_plausible.call_args_list == [
             umock.call(0, 110, 10, 10, 120, 20),
@@ -442,28 +443,28 @@ class TestTrack:
             | {'tide_flow': None, 'tide_bearing': 0},
             self.make_pos_dict(4, 0, 0, 2, 0, 0)
             | {'tide_flow': -1, 'tide_bearing': -1}]
-        track = trk.Track.sanitized_from_positions(
+        track = event.Track.sanitized_from_positions(
             positions, stw_is_plausible, distance_covered_is_plausible)
         assert_that(
             track.positions,
             only_contains(has_properties(tide_flow=0, tide_bearing=0, stw=2)))
 
     def test_duration_on_empty(self):
-        assert trk.Track().duration == pendulum.duration(seconds=0)
+        assert event.Track().duration == pendulum.duration(seconds=0)
 
     def test_duration_on_single_position(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         assert track.duration == pendulum.duration(seconds=0)
 
     def test_duration_on_single_segment(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
         assert track.duration == pendulum.duration(seconds=10)
 
     def test_duration_on_multiple_segments(self):
-        track = trk.Track()
+        track = event.Track()
         track.append_position(pdts(10), 1, 2, 3, 4, 5, 6, 7)
         track.append_position(pdts(25), 11, 12, 13, 14, 15, 16, 17)
         track.append_position(pdts(120), 21, 22, 23, 24, 25, 26, 27)

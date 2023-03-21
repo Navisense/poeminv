@@ -10,8 +10,8 @@ with (requirements_path / 'dev.txt').open() as f:
     dev_requirements = test_requirements + f.readlines()
 
 setuptools.setup(
-    name='port-emission-inventory', version='0.1',
+    name='poeminv', version='0.2',
     description='Tools to create emission inventories for ports.',
     python_requires='>=3.11', install_requires=requirements,
-    extras_require={'test': test_requirements, 'dev': dev_requirements},
-    license='AGPL-3.0-or-later')
+    extras_require={'test': test_requirements,
+                    'dev': dev_requirements}, license='AGPL-3.0-or-later')

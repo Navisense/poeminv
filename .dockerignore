@@ -2,5 +2,5 @@
 !pyproject.toml
 !setup.py
 !requirements
-!port_emission_inventory/*.py
+!poeminv/*.py
 !tests/*.py

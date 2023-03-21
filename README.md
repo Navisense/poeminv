@@ -1,7 +1,7 @@
 # Port emission inventory tools
 
-`port_emission_inventory` is a Python library containing a set of tools for
-automated creation of port emission inventories.
+`poeminv` is a Python library containing a set of tools for automated creation
+of port emission inventories.
 
 ## Copyright and license
 
