@@ -176,7 +176,7 @@ class Position:
     def __init__(
             self, ts, lon, lat, sog, cog, heading, tide_flow=0, tide_bearing=0,
             stw=None):
-        self.ts = ts
+        self.ts = pendulum.instance(ts)
         self.lon = Longitude(lon)
         self.lat = Latitude(lat)
         self._sog = Speed(sog)
@@ -258,6 +258,7 @@ class Segment:
 
     @property
     def distance(self):
+        """The segment's distance in meters."""
         if self._distance is None:
             self._distance = great_circle_distance(
                 self.start.lon, self.start.lat, self.end.lon, self.end.lat)
@@ -436,8 +437,19 @@ class Track:
             return cogs[0]
         return average_bearing(*cogs)
 
+    def __repr__(self):
+        if len(self.positions) == 0:
+            return '<Track (empty)>'
+        elif len(self.positions) == 1:
+            return f'<Track with single position {self.positions[0]}>'
+        return (
+            f'<Track of {len(self.positions)} positions with a length of '
+            f'{self.distance}m taking {self.duration.in_words()}, from '
+            f'{self.positions[0]} to {self.positions[-1]}>')
+
     @property
     def distance(self):
+        """The track's total distance in meters."""
         return sum(s.distance for s in self.segments)
 
     @property

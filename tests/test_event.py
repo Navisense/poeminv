@@ -133,21 +133,22 @@ class TestPosition:
             (2, 0, 3, 270, pytest.approx(math.sqrt(13)))])
     def test_calculates_stw_on_construction(
             self, sog, cog, tide_flow, tide_bearing, stw):
-        pos = event.Position(10, 11, 12, sog, cog, 14, tide_flow, tide_bearing)
+        pos = event.Position(
+            pdts(10), 11, 12, sog, cog, 14, tide_flow, tide_bearing)
         assert_that(
             pos,
             has_properties(
-                ts=10, lon=11, lat=12, sog=sog, cog=cog, heading=14,
+                ts=pdts(10), lon=11, lat=12, sog=sog, cog=cog, heading=14,
                 tide_flow=tide_flow, tide_bearing=tide_bearing, stw=stw))
 
     def test_recalculates_stw_on_changed_tide_flow(self):
-        pos = event.Position(10, 0, 0, 6, 0, 0, 2, 180)
+        pos = event.Position(pdts(10), 0, 0, 6, 0, 0, 2, 180)
         assert pos.stw == 8
         pos.tide_flow = 3
         assert pos.stw == 9
 
     def test_recalculates_stw_on_changed_tide_bearing(self):
-        pos = event.Position(10, 0, 0, 4, 0, 0, 3, 180)
+        pos = event.Position(pdts(10), 0, 0, 4, 0, 0, 3, 180)
         assert pos.stw == 7
         pos.tide_bearing = 270
         assert pos.stw == 5
@@ -155,10 +156,8 @@ class TestPosition:
 
 class TestSegment:
     def test_duration(self):
-        position1 = event.Position(
-            pendulum.from_timestamp(10), 11, 12, 13, 14, 15, 16, 17)
-        position2 = event.Position(
-            pendulum.from_timestamp(20), 21, 22, 23, 24, 25, 26, 27)
+        position1 = event.Position(pdts(10), 11, 12, 13, 14, 15, 16, 17)
+        position2 = event.Position(pdts(20), 21, 22, 23, 24, 25, 26, 27)
         segment = event.Segment(position1, position2)
         assert segment.duration == d(10)
 
