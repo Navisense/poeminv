@@ -23,8 +23,10 @@ import logging
 import numbers as nr
 
 import poeminv.event as ev
+import poeminv.util as util
 
-VALID_ENGINE_GROUPS = frozenset(['propulsion', 'auxiliary', 'boiler'])
+VALID_ENGINE_GROUPS = util.ValueContainsStrEnum(
+    'VALID_ENGINE_GROUPS', ['propulsion', 'auxiliary', 'boiler'])
 VALID_SHIP_TYPE_SIZE_UNITS = {
     'barge': ['n/a'],
     'crew_supply': ['n/a'],
@@ -54,10 +56,19 @@ VALID_SHIP_TYPE_SIZE_UNITS = {
     'roro': ['gt'],
     'vehicle_carrier': ['number_vehicles'],
     'misc': ['n/a'],}
-VALID_SHIP_SIZE_UNITS = frozenset(
-    it.chain(*VALID_SHIP_TYPE_SIZE_UNITS.values()))
-VALID_ENGINE_CATEGORIES = frozenset(['c1', 'c2', 'c3'])
-VALID_ENGINE_NOX_TIERS = range(4)
+VALID_SHIP_SIZE_UNITS = util.ValueContainsStrEnum(
+    'VALID_SHIP_SIZE_UNITS', [
+        unit.upper()
+        for unit in set(it.chain(*VALID_SHIP_TYPE_SIZE_UNITS.values()))])
+VALID_ENGINE_CATEGORIES = util.ValueContainsStrEnum(
+    'VALID_ENGINE_CATEGORIES', ['c1', 'c2', 'c3'])
+
+
+class VALID_ENGINE_NOX_TIERS(util.ValueContainsIntEnum):
+    UNCLASSIFIED: int = 0
+    TIER1: int = 1
+    TIER2: int = 2
+    TIER3: int = 3
 
 
 @dc.dataclass

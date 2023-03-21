@@ -16,6 +16,9 @@
 # along with this program, in the file LICENSE at the top level of this
 # repository. If not, see <https://www.gnu.org/licenses/>.
 
+import enum
+import warnings
+
 
 def m_to_nm(meters):
     return meters / 1852
@@ -50,3 +53,24 @@ class OpDict(dict):
             except KeyError:
                 product[key] = value
         return type(self)(product)
+
+
+class ValueContainsEnumType(enum.EnumType):
+    """Enum metaclass that allows containment checks by value."""
+    def __contains__(cls, member_or_value):
+        # TODO This behavior will become standard in Python 3.12 and this class
+        # will no longer be necessary.
+        try:
+            with warnings.catch_warnings():
+                warnings.simplefilter('ignore')
+                return super().__contains__(member_or_value)
+        except TypeError:
+            return any(member.value == member_or_value for member in cls)
+
+
+class ValueContainsStrEnum(enum.StrEnum, metaclass=ValueContainsEnumType):
+    pass
+
+
+class ValueContainsIntEnum(enum.IntEnum, metaclass=ValueContainsEnumType):
+    pass
