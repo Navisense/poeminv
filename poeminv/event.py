@@ -445,25 +445,6 @@ class Track:
         return sum((s.duration for s in self.segments),
                    start=pendulum.duration())
 
-    def partial_track(self, start_ts, end_ts):
-        """Create a shallow copy bounded to the given interval."""
-        if start_ts > end_ts:
-            raise ValueError('Start must not be after end.')
-        try:
-            start_idx = next(
-                i for i, p in enumerate(self.positions) if p.ts >= start_ts)
-        except StopIteration:
-            return type(self)()
-        if (start_ts == self.positions[0].ts
-                and end_ts == self.positions[-1].ts):
-            return self
-        positions = [p for p in self.positions[start_idx:] if p.ts <= end_ts]
-        segments = self.segments[start_idx:start_idx + len(positions) - 1]
-        partial_track = type(self)()
-        partial_track.positions = positions
-        partial_track.segments = segments
-        return partial_track
-
     def append_position(
             self, ts, lon, lat, sog, cog, heading, tide_flow=0,
             tide_bearing=0):
