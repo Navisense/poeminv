@@ -103,11 +103,17 @@ class VesselInfo:
             assert self.engine_nox_tier in EngineNOxTier
             assert self.size >= 0
             assert self.size_unit in VALID_SHIP_TYPE_SIZE_UNITS[self.ship_type]
-        except (AssertionError, TypeError) as e:
+        except (AssertionError, TypeError, KeyError) as e:
             raise ValueError(f'Invalid info {self}.') from e
 
 
 class Range:
+    """
+    A range offering a containment check.
+
+    The interval represented is closed at the lower bound ge ("greater or
+    equal") and open at the upper bound lt ("less than").
+    """
     def __init__(self, ge: nr.Number, lt: nr.Number) -> None:
         self._ge = ge
         self._lt = lt
@@ -117,6 +123,12 @@ class Range:
 
 
 class Criterion(abc.ABC):
+    """
+    A criterion attached to a name.
+
+    Represents a criterion to be fulfilled by a value attached to a certain
+    name.
+    """
     VALID_NAMES = (
         {f.name
          for f in dc.fields(VesselInfo)}
@@ -153,6 +165,7 @@ class Criterion(abc.ABC):
 
     @abc.abstractmethod
     def matches(self, **values: t.Any) -> bool:
+        """Check whether a set of values satisfies this criterion."""
         raise NotImplementedError
 
 
@@ -208,6 +221,17 @@ class MatchConfig:
     checked against values to see if the data is relevant to them.
     """
     def __init__(self, match_config: dict) -> None:
+        """
+        Create a MatchConfig.
+
+        match_config must be a dictionary with a key match_criteria specifying
+        criteria, and any number of other key/value pairs that form the data of
+        this config. The criteria specification must itself be a dictionary
+        mapping the name of the criterion to a specification. This is either
+        - a dictionary with keys ge and lt for a range of values
+        - a dictionary with a key any_of that maps to a list of other criteria
+        - a literal value that should be equal
+        """
         try:
             self.criteria = {
                 name: self._criterion_from_dict(name, criterion)
@@ -238,13 +262,21 @@ class MatchConfig:
 
 
 class EmissionConfig:
+    """
+    A config to calculate emissions.
+
+    Contains information specific to a ship needed to calculate emissions for a
+    given amount of energy, or get engine power estimates for auxiliary engines
+    or boilers.
+    """
     EMISSIONS_ENGINE_GROUPS = t.Literal['propulsion', 'auxiliary', 'boiler']
     ENGINE_POWER_ENGINE_GROUPS = t.Literal['auxiliary', 'boiler']
 
     def __init__(
         self, emission_factors: dict[EMISSIONS_ENGINE_GROUPS, dict[str,
                                                                    nr.Number]],
-        engine_powers: dict[ENGINE_POWER_ENGINE_GROUPS, dict[str, nr.Number]],
+        engine_powers: dict[ENGINE_POWER_ENGINE_GROUPS, dict[ev.Mode,
+                                                             nr.Number]],
         low_load_adjustment_factors: ca.Sequence[tuple[Range,
                                                        dict[str, nr.Number]]]):
         if set(emission_factors) != set(t.get_args(
@@ -258,13 +290,27 @@ class EmissionConfig:
         self._engine_powers = engine_powers
         self.low_load_adjustment_factors = low_load_adjustment_factors
 
-    def engine_power(self, engine_group: EngineGroup) -> dict[str, nr.Number]:
+    def engine_power(self,
+                     engine_group: EngineGroup) -> dict[ev.Mode, nr.Number]:
+        """
+        Get engine powers by mode.
+
+        Returns a dictionary mapping all possible operating modes to the
+        estimated power in kW the given engine group is producing.
+        """
         if engine_group not in t.get_args(self.ENGINE_POWER_ENGINE_GROUPS):
             raise ValueError('Invalid engine group.')
         return self._engine_powers[engine_group]
 
     def emissions_from_energy(self, engine_group: EngineGroup,
                               kwh: nr.Number) -> dict[str, nr.Number]:
+        """
+        Calculate emissions.
+
+        Returns a dictionary mapping names of pollutants to the emissions in
+        grams caused by the ship's engines of the given group while expending
+        the given energy.
+        """
         try:
             emission_factors = self._emission_factors[engine_group]
         except KeyError:
@@ -275,6 +321,11 @@ class EmissionConfig:
 
 
 class EmissionConfigs:
+    """
+    A collection of config data for all possible ships.
+
+    Contains information to generate an EmissionConfig for any given ship.
+    """
     def __init__(
             self, base_values: ca.Sequence[MatchConfig],
             pollutants: ca.Sequence[MatchConfig],
@@ -328,6 +379,7 @@ class EmissionConfigs:
 
     def config_for(
             self, vessel_info: VesselInfo, mode: ev.Mode) -> EmissionConfig:
+        """Get a config for a specific ship in a given mode of operationn."""
         emission_factors = {
             e: self._emission_factors_for(vessel_info, e)
             for e in t.get_args(EmissionConfig.EMISSIONS_ENGINE_GROUPS)}
@@ -393,58 +445,6 @@ class EmissionConfigs:
     def _make_range_factors(self, range_factors):
         return [(Range(c['range']['ge'], c['range']['lt']), c['factors'])
                 for c in range_factors]
-
-
-class Config:
-    def __init__(self, config: dict) -> None:
-        try:
-            self.sea_margin_adjustment_factor = config[
-                'sea_margin_adjustment_factor']
-            base_values = {
-                name: self._match_configs_from(match_configs)
-                for name, match_configs in config['base_values'].items()}
-            pollutants = {
-                name: self._match_configs_from(match_configs)
-                for name, match_configs in config['pollutants'].items()}
-            engine_powers = self._match_configs_from(
-                config['default_engine_powers'])
-            vessel_info_guess_data = self._match_configs_from(
-                config['vessel_info_guess_data'])
-            average_vessel_build_times = self._match_configs_from(
-                config['average_vessel_build_times'])
-            low_load_adjustment_factors = self._match_configs_from(
-                config['low_load_adjustment_factors'])
-        except KeyError as e:
-            raise ValueError('Missing config part.') from e
-        if not isinstance(self.sea_margin_adjustment_factor, nr.Number):
-            raise ValueError('sea_margin_adjustment_factor must be a number.')
-        self._emission_configs = EmissionConfigs(
-            base_values, pollutants, engine_powers,
-            low_load_adjustment_factors)
-        self._vessel_info_guesser = VesselInfoGuesser(
-            vessel_info_guess_data, average_vessel_build_times)
-
-    @staticmethod
-    def _match_configs_from(match_configs_list):
-        return [
-            MatchConfig(match_config) for match_config in match_configs_list]
-
-    @classmethod
-    def from_yaml_path(cls, yaml_path: str) -> t.Self:
-        import yaml
-        with open(yaml_path, 'rb') as f:
-            return Config(yaml.load(f, yaml.Loader))
-
-    @property
-    def default_vessel_info(self) -> VesselInfo:
-        return self._vessel_info_guesser.default_vessel_info
-
-    def emission_config_for(
-            self, vessel_info: VesselInfo, mode: ev.Mode) -> EmissionConfig:
-        return self._emission_configs.config_for(vessel_info, mode)
-
-    def guess_missing_vessel_info(self, **values: t.Any) -> dict[str, t.Any]:
-        return self._vessel_info_guesser.guess_missing_vessel_info(**values)
 
 
 class VesselInfoGuesser:
@@ -606,3 +606,70 @@ class VesselInfoGuesser:
         matching_config = next(
             c for c in self._average_vessel_build_times if c.matches(**values))
         return matching_config.data['build_time_years']
+
+
+class Config:
+    """
+    Overall configuration.
+
+    Contains everything needed to create EmissionConfigs for ships, as well as
+    guess missing vessel information.
+
+    Also has a default_vessel_info, which is just the information that would be
+    guessed if nothing is known about a vessel.
+    """
+    def __init__(self, config: dict) -> None:
+        try:
+            self.sea_margin_adjustment_factor = config[
+                'sea_margin_adjustment_factor']
+            base_values = {
+                name: self._match_configs_from(match_configs)
+                for name, match_configs in config['base_values'].items()}
+            pollutants = {
+                name: self._match_configs_from(match_configs)
+                for name, match_configs in config['pollutants'].items()}
+            engine_powers = self._match_configs_from(
+                config['default_engine_powers'])
+            vessel_info_guess_data = self._match_configs_from(
+                config['vessel_info_guess_data'])
+            average_vessel_build_times = self._match_configs_from(
+                config['average_vessel_build_times'])
+            low_load_adjustment_factors = self._match_configs_from(
+                config['low_load_adjustment_factors'])
+        except KeyError as e:
+            raise ValueError('Missing config part.') from e
+        if not isinstance(self.sea_margin_adjustment_factor, nr.Number):
+            raise ValueError('sea_margin_adjustment_factor must be a number.')
+        self._emission_configs = EmissionConfigs(
+            base_values, pollutants, engine_powers,
+            low_load_adjustment_factors)
+        self._vessel_info_guesser = VesselInfoGuesser(
+            vessel_info_guess_data, average_vessel_build_times)
+
+    @staticmethod
+    def _match_configs_from(match_configs_list):
+        return [
+            MatchConfig(match_config) for match_config in match_configs_list]
+
+    @classmethod
+    def from_yaml_path(cls, yaml_path: str) -> t.Self:
+        import yaml
+        with open(yaml_path, 'rb') as f:
+            return Config(yaml.load(f, yaml.Loader))
+
+    @property
+    def default_vessel_info(self) -> VesselInfo:
+        return self._vessel_info_guesser.default_vessel_info
+
+    def emission_config_for(
+            self, vessel_info: VesselInfo, mode: ev.Mode) -> EmissionConfig:
+        """Get a config for a specific ship in a given mode of operationn."""
+        return self._emission_configs.config_for(vessel_info, mode)
+
+    def guess_missing_vessel_info(self, **values: t.Any) -> dict[str, t.Any]:
+        """
+        Guess missing vessel info attributes.
+
+        See VesselInfoGuesser.guess_missing_vessel_info().
+        """
+        return self._vessel_info_guesser.guess_missing_vessel_info(**values)
