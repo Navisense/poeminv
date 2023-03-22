@@ -110,12 +110,12 @@ class TestEmissionCalculator:
 
         def factory():
             calculator = em.EmissionCalculator(
-                mocked_segment_sanitizer,
                 umock.Mock(sea_margin_adjustment_factor=1),
                 cfg.VesselInfo(
                     max_speed=10, engine_kw=1000, engine_rpm=100,
                     engine_category='c3', engine_nox_tier=1,
-                    ship_type='container_ship', size=3000, size_unit='teu'))
+                    ship_type='container_ship', size=3000, size_unit='teu'),
+                segment_duration_sanitizer=mocked_segment_sanitizer)
             calculator.config.emission_config_for.return_value = (
                 MockEmissionConfig())
             return calculator

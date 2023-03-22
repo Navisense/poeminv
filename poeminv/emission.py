@@ -28,8 +28,8 @@ import poeminv.util as util
 
 class SegmentDurationSanitizer:
     def __init__(
-            self, max_fuel_calc_distance_deviation: nr.Number,
-            max_fuel_calc_duration_increase_factor: nr.Number) -> None:
+            self, max_fuel_calc_distance_deviation: nr.Number = 0.25,
+            max_fuel_calc_duration_increase_factor: nr.Number = 10) -> None:
         self.max_fuel_calc_distance_deviation = (
             max_fuel_calc_distance_deviation)
         self.max_fuel_calc_duration_increase_factor = (
@@ -91,11 +91,13 @@ class EmissionCalculator:
     factors and data related to the vessel.
     """
     def __init__(
-            self, segment_duration_sanitizer: SegmentDurationSanitizer,
-            config: cfg.Config, vessel_info: cfg.VesselInfo) -> None:
-        self.segment_duration_sanitizer = segment_duration_sanitizer
+        self, config: cfg.Config, vessel_info: cfg.VesselInfo,
+        segment_duration_sanitizer:
+        SegmentDurationSanitizer = SegmentDurationSanitizer()
+    ) -> None:
         self.config = config
         self.vessel_info = vessel_info
+        self.segment_duration_sanitizer = segment_duration_sanitizer
         self.logger = logging.getLogger(type(self).__name__)
 
     def calculate_track_emissions(
