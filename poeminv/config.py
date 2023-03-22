@@ -398,6 +398,8 @@ class EmissionConfigs:
 class Config:
     def __init__(self, config: dict) -> None:
         try:
+            self.sea_margin_adjustment_factor = config[
+                'sea_margin_adjustment_factor']
             base_values = {
                 name: self._match_configs_from(match_configs)
                 for name, match_configs in config['base_values'].items()}
@@ -414,6 +416,8 @@ class Config:
                 config['low_load_adjustment_factors'])
         except KeyError as e:
             raise ValueError('Missing config part.') from e
+        if not isinstance(self.sea_margin_adjustment_factor, nr.Number):
+            raise ValueError('sea_margin_adjustment_factor must be a number.')
         self._emission_configs = EmissionConfigs(
             base_values, pollutants, engine_powers,
             low_load_adjustment_factors)

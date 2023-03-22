@@ -110,7 +110,8 @@ class TestEmissionCalculator:
 
         def factory():
             calculator = em.EmissionCalculator(
-                mocked_segment_sanitizer, umock.Mock(),
+                mocked_segment_sanitizer,
+                umock.Mock(sea_margin_adjustment_factor=1),
                 cfg.VesselInfo(
                     max_speed=10, engine_kw=1000, engine_rpm=100,
                     engine_category='c3', engine_nox_tier=1,
@@ -140,6 +141,13 @@ class TestEmissionCalculator:
         assert calculator.propulsion_load_at_stw(10) == 1
         assert calculator.propulsion_load_at_stw(11) == 1
         assert calculator.propulsion_load_at_stw(float('inf')) == 1
+
+    def test_propulsion_load_at_stw_adjusts_with_sea_margin(self, calculator):
+        calculator.config.sea_margin_adjustment_factor = 1.25
+        assert calculator.propulsion_load_at_stw(1) == pytest.approx(0.00125)
+        assert calculator.propulsion_load_at_stw(5) == 0.15625
+        assert calculator.propulsion_load_at_stw(9.5) == 1
+        assert calculator.propulsion_load_at_stw(10) == 1
 
     def test_segment_propulsion_emissions_on_same_stw(
             self, calculator, emission_config):

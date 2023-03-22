@@ -157,8 +157,10 @@ class EmissionCalculator:
         return (start_load + end_load) / 2
 
     def propulsion_load_at_stw(self, stw: ev.Speed) -> nr.Number:
-        fraction_of_max_speed = min(stw / self.vessel_info.max_speed, 1)
-        return fraction_of_max_speed**3
+        fraction_of_max_speed = stw / self.vessel_info.max_speed
+        load = fraction_of_max_speed**3
+        load *= self.config.sea_margin_adjustment_factor
+        return min(load, 1)
 
     def _adjusted_emissions(self, base_emissions, load, emission_config):
         for load_range, adjustment_factors in (
