@@ -1,0 +1,244 @@
+################################################################################
+# sea_margin_adjustment_factor is applied to account for wind and waves when
+# calculating the propulsion engine power from speed. It is multiplied at
+# the end, so e.g. a factor of 1.1 means a 10% higher power.
+sea_margin_adjustment_factor: 1.1
+################################################################################
+#
+# pollutants defines emission factors for different pollutants by name. Each
+# object must contain a base_value_name referencing an entry in base_values.
+# It may also specify a multiplier that will be applied to the base value,
+# as well as a constant offset_g_per_kwh that will be added.
+pollutants:
+  nox:
+    - match_criteria: {}
+      base_value_name: nox
+  co2:
+    - match_criteria: {}
+      base_value_name: bsfc
+      multiplier: 3.206
+################################################################################
+#
+# base_values contains the values for substances that pollutants are based
+# on. Each object must specify exactly the key g_per_kwh.
+base_values:
+  bsfc:
+    - match_criteria:
+        engine_group: propulsion
+        engine_rpm: {"ge": 0, "lt": 500}
+      g_per_kwh: 185
+    - match_criteria:
+        engine_group: propulsion
+        engine_rpm: {"ge": 500, "lt": 999999}
+      g_per_kwh: 205
+    - match_criteria:
+        engine_group: auxiliary
+      g_per_kwh: 217
+    - match_criteria:
+        engine_group: boiler
+      g_per_kwh: 300
+  nox:
+    - match_criteria:
+        engine_group: propulsion
+        engine_nox_tier: 0
+      g_per_kwh: 17
+    - match_criteria:
+        engine_group: propulsion
+        engine_nox_tier: 1
+      g_per_kwh: 16
+    - match_criteria:
+        engine_group: auxiliary
+        engine_nox_tier: 0
+      g_per_kwh: 13.8
+    - match_criteria:
+        engine_group: auxiliary
+        engine_nox_tier: 1
+      g_per_kwh: 12.2
+    - match_criteria:
+        engine_group: boiler
+      g_per_kwh: 2
+################################################################################
+#
+# default_engine_powers defines the operating power of non-propulsion
+# engines in different modes. Each object must specify engine power in kW
+# for transit, maneuvering, hotelling, and anchorage.
+default_engine_powers:
+  - match_criteria:
+      engine_group: auxiliary
+      ship_type: container_ship
+      size: {"ge": 2000, "lt": 3000}
+      size_unit: teu
+      engine_category: c3
+    transit: 1230
+    maneuvering: 1800
+    hotelling: 700
+    anchorage: 1230
+  - match_criteria:
+      engine_group: auxiliary
+      ship_type: container_ship
+      size: {"ge": 3000, "lt": 5000}
+      size_unit: teu
+      engine_category: c3
+    transit: 1390
+    maneuvering: 2470
+    hotelling: 940
+    anchorage: 1390
+  - match_criteria:
+      engine_group: boiler
+      ship_type: container_ship
+      size: {"ge": 2000, "lt": 3000}
+      size_unit: teu
+      engine_category: c3
+    transit: 0
+    maneuvering: 350
+    hotelling: 350
+    anchorage: 350
+  - match_criteria:
+      engine_group: boiler
+      ship_type: container_ship
+      size: {"ge": 3000, "lt": 8000}
+      size_unit: teu
+      engine_category: c3
+    transit: 0
+    maneuvering: 450
+    hotelling: 450
+    anchorage: 450
+  - match_criteria:
+      engine_group: auxiliary
+    transit: 88
+    maneuvering: 88
+    hotelling: 88
+    anchorage: 88
+  - match_criteria:
+      engine_group: boiler
+    transit: 0
+    maneuvering: 0
+    hotelling: 0
+    anchorage: 0
+################################################################################
+#
+# vessel_info_guess_data defines educated guesses for vessel information
+# (max_speed, engine_kw, and engine_rpm) for cases where accurate data is
+# not available.
+vessel_info_guess_data:
+  - match_criteria:
+      ship_type: container_ship
+      size: {"ge": 2000, "lt": 3000}
+      size_unit: teu
+    engine_category: c3
+    max_speed: 23
+    engine_kw: 21800
+    engine_rpm: 100
+  - match_criteria:
+      ship_type: container_ship
+      size: {"ge": 3000, "lt": 5000}
+      size_unit: teu
+    engine_category: c3
+    max_speed: 25
+    engine_kw: 37000
+    engine_rpm: 100
+  ### Defaults for ship types ###
+  - match_criteria:
+      ship_type:
+        any_of:
+          - bulk_carrier
+          - chemical_tanker
+          - general_cargo
+          - liquified_gas_tanker
+          - oil_tanker
+    ship_type: bulk_carrier
+    size: 57000
+    size_unit: dwt
+  - match_criteria:
+      ship_type: container_ship
+    ship_type: container_ship
+    size: 2500
+    size_unit: teu
+  - match_criteria:
+      ship_type:
+        any_of:
+         - cruise
+         - ferry_passenger
+         - ferry_roro_passenger
+         - roro
+    ship_type: cruise
+    size: 500
+    size_unit: gt
+  - match_criteria:
+      ship_type: vehicle_carrier
+    ship_type: vehicle_carrier
+    size: 750
+    size_unit: number_vehicles
+  - match_criteria:
+      ship_type:
+        any_of:
+          - barge
+          - crew_supply
+          - excursion
+          - fishing
+          - towboat_pushboat
+          - dredging
+          - sailing
+          - recreational
+          - pilot
+          - tug
+          - workboat
+          - government
+          - offshort_support_drillship
+          - other_service
+          - other_tanker
+          - reefer
+          - misc
+    ship_type: barge
+    size: 0
+    size_unit: n/a
+  ### NOx tiers by keel-laid year ###
+  - match_criteria:
+      keel_laid_year: {"ge": 0, "lt": 2000}
+    engine_nox_tier: 0
+  - match_criteria:
+      keel_laid_year: {"ge": 2000, "lt": 2011}
+    engine_nox_tier: 1
+  - match_criteria:
+      keel_laid_year: {"ge": 2011, "lt": 2016}
+    engine_nox_tier: 2
+  - match_criteria:
+      keel_laid_year: {"ge": 2016, "lt": 9999}
+    engine_nox_tier: 3
+  ### Default data if we don't have any information ###
+  - match_criteria: {}
+    max_speed: 10
+    engine_kw: 1000
+    engine_rpm: 1500
+    engine_nox_tier: 1
+    ship_type: misc
+    engine_category: c2
+    size: 0
+    size_unit: n/a
+################################################################################
+#
+# average_vessel_build_times defines educated guesses for the duration
+# between keel_laid_year and year_of_build based on vessel information like
+# type.
+average_vessel_build_times:
+  - match_criteria:
+      ship_type: bulk_carrier
+    build_time_years: 1
+  - match_criteria:
+      ship_type: container_ship
+    build_time_years: 2
+  - match_criteria: {}
+    build_time_years: 1
+################################################################################
+#
+# low_load_adjustment_factors defines adjustment factors to be applied to
+# base emission factors of propulsion engines for various pollutants.
+low_load_adjustment_factors:
+  - match_criteria: {}
+    range_factors:
+      - range: {"ge": 0, "lt": 0.1}
+        factors:
+          co2: 3
+      - range: {"ge": 0.1, "lt": 0.2}
+        factors:
+          co2: 2
