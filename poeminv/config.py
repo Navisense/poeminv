@@ -590,7 +590,7 @@ class VesselInfoGuesser:
         return attrs
 
     def _maybe_improve_nox_tier_guess(self, attrs, values):
-        if (attrs['engine_category'] == 'c3'
+        if (attrs['engine_category'] == EngineCategory.C3
                 and values.pop('keel_laid_year', None) is None
                 and values.get('year_of_build') is not None):
             # We couldn't guess a proper engine_nox_tier without

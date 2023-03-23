@@ -611,36 +611,41 @@ class TestVesselInfoGuesser:
         guesser = make_guesser([
             ({'keel_laid_year': 2000},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=1)),
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER1)),
             ({'keel_laid_year': 2002},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=2)),
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER2)),
             ({'keel_laid_year': {'ge': 2003, 'lt': 9999}},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=3)),])
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER3)),])
         assert_that(
             guesser.guess_missing_vessel_info(
-                engine_category='c3', keel_laid_year=2002, year_of_build=2004),
-            has_entries(engine_nox_tier=2))
+                engine_category=cfg.EngineCategory.C3, keel_laid_year=2002,
+                year_of_build=2004),
+            has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER2))
 
     def test_uses_nox_tier_for_keel_laid_year_derived_via_given_info(
             self, make_guesser, make_vessel_info_attrs):
         guesser = make_guesser([
             ({'keel_laid_year': 2002},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=2)),
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER2)),
             ({},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=3)),],
-                               build_times=[
-                                   ({'ship_type': 'bulk_carrier'}, 2),
-                                   ({'ship_type': 'container_ship'}, 3),
-                                   ({}, 4)])
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER3)),], build_times=[
+                     ({'ship_type': 'bulk_carrier'}, 2),
+                     ({'ship_type': 'container_ship'}, 3), ({}, 4)])
         assert_that(
             guesser.guess_missing_vessel_info(
-                engine_category='c3', ship_type='container_ship',
-                keel_laid_year=None, year_of_build=2005),
-            has_entries(engine_nox_tier=2))
+                engine_category=cfg.EngineCategory.C3,
+                ship_type='container_ship', keel_laid_year=None,
+                year_of_build=2005),
+            has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER2))
 
     def test_uses_nox_tier_for_keel_laid_year_derived_via_guessed_info(
             self, make_guesser, make_vessel_info_attrs):
@@ -656,36 +661,40 @@ class TestVesselInfoGuesser:
                      ship_type='container_ship')),
                 ({'keel_laid_year': 2002},
                  make_vessel_info_attrs(
-                     only_attrs=['engine_nox_tier'], engine_nox_tier=2)),
+                     only_attrs=['engine_nox_tier'],
+                     engine_nox_tier=cfg.EngineNOxTier.TIER2)),
                 ({},
                  make_vessel_info_attrs(
-                     only_attrs=['engine_nox_tier'], engine_nox_tier=3)),],
+                     only_attrs=['engine_nox_tier'],
+                     engine_nox_tier=cfg.EngineNOxTier.TIER3)),],
             build_times=[({'ship_type': 'bulk_carrier'}, 2),
                          ({'ship_type': 'container_ship'}, 3), ({}, 4)],
         )
         assert_that(
             guesser.guess_missing_vessel_info(
-                engine_category='c3', ais_type=70, length=200,
+                engine_category=cfg.EngineCategory.C3, ais_type=70, length=200,
                 keel_laid_year=None, year_of_build=2005),
-            has_entries(engine_nox_tier=2))
+            has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER2))
 
-    @pytest.mark.parametrize('engine_category', ['c1', 'c2'])
+    @pytest.mark.parametrize(
+        'engine_category', [cfg.EngineCategory.C1, cfg.EngineCategory.C2])
     def test_doesnt_bother_with_nox_tier_for_c1_c2_vessels(
             self, make_guesser, make_vessel_info_attrs, engine_category):
         guesser = make_guesser([
             ({'keel_laid_year': 2002},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=2)),
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER2)),
             ({},
              make_vessel_info_attrs(
-                 only_attrs=['engine_nox_tier'], engine_nox_tier=3)),],
-                               build_times=[
-                                   ({'ship_type': 'container_ship'}, 3)])
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER3)),], build_times=[
+                     ({'ship_type': 'container_ship'}, 3)])
         assert_that(
             guesser.guess_missing_vessel_info(
                 engine_category=engine_category, ship_type='container_ship',
                 keel_laid_year=None, year_of_build=2005),
-            has_entries(engine_nox_tier=3))
+            has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER3))
 
     def test_construction_raises_on_invalid_attr_name(
             self, make_guesser, make_vessel_info_attrs):
