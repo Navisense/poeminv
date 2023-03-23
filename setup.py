@@ -30,6 +30,8 @@ with (requirements_path / 'dev.txt').open() as f:
 setuptools.setup(
     name='poeminv', version='0.2',
     description='Tools to create emission inventories for ports.',
-    python_requires='>=3.11', install_requires=requirements,
+    author="Navisense GmbH", author_email="support@navisense.de",
+    url='https://github.com/Navisense/poeminv', python_requires='>=3.11',
+    install_requires=requirements,
     extras_require={'test': test_requirements,
                     'dev': dev_requirements}, license='AGPL-3.0-or-later')
