@@ -98,7 +98,7 @@ class EmissionCalculator:
         self.config = config
         self.vessel_info = vessel_info
         self.segment_duration_sanitizer = segment_duration_sanitizer
-        self.logger = logging.getLogger(type(self).__name__)
+        self.logger = logging.getLogger(f'{__name__}.{type(self).__name__}')
 
     def calculate_track_emissions(
             self, track: ev.Track,

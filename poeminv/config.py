@@ -336,7 +336,7 @@ class EmissionConfigs:
         self._engine_powers = engine_powers
         self._low_load_adjustment_factors = low_load_adjustment_factors
         self._assert_valid_config()
-        self.logger = logging.getLogger(type(self).__name__)
+        self.logger = logging.getLogger(f'{__name__}.{type(self).__name__}')
 
     def _assert_valid_config(self):
         for c in it.chain(*self._base_values.values()):

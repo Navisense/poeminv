@@ -397,7 +397,7 @@ class Track:
                 pendulum.from_timestamp(current['ts']), current['lon'],
                 current['lat'], sog, cog, heading, tide_flow, tide_bearing)
         if any(sanitizations.values()):
-            logging.getLogger(cls.__name__).debug(
+            logging.getLogger(f'{__name__}.{cls.__name__}').debug(
                 'Sanitization during track creation: '
                 f'{sanitizations["num_discarded"]} outliers, '
                 f'{sanitizations["num_sogs"]} sogs ({sanitizations["sogs"]}), '
