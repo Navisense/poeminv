@@ -532,16 +532,16 @@ class VesselInfoGuesser:
         criteria of the data. For each attribute, the first set of data
         including that attribute whose criteria match is chosen.
 
-        Some special handling applies to guessing engine_nox_tier since it
-        relies on keel_laid_year, which in turn may only be known through
-        year_of_build. If engine_category is c3 (the only one for which NOx
-        tier is interesting), keel_laid_year was not initially known, but
-        year_of_build is, a second round of guessing is done. First, the
-        keel_laid_year is calculated from year_of_build and the average vessel
-        build time, which is looked up using all known vessel information
-        (including e.g. ship_type which may have been guessed based on
-        ais_type). This is used to make another, more informed guess of
-        engine_nox_tier.
+        Some special handling applies to guessing engine_nox_tier since it is
+        often derived from keel_laid_year, which in turn may only be known
+        through year_of_build. If no engine_nox_tier is initially given,
+        engine_category is c3 (the only one for which NOx tier is interesting),
+        keel_laid_year was not initially known, but year_of_build is, a second
+        round of guessing is done. First, the keel_laid_year is calculated from
+        year_of_build and the average vessel build time, which is looked up
+        using all known vessel information (including e.g. ship_type which may
+        have been guessed based on ais_type). This is used to make another,
+        more informed guess of engine_nox_tier.
 
         An additional restriction applies to ship_type, size, and size_unit: if
         ship_type is specified as part of values, size and size_unit contained
@@ -564,7 +564,8 @@ class VesselInfoGuesser:
             for k, v in values.items()
             if k in self._FIELD_NAMES and v is not None}
         attrs = self._guess_missing_attrs(attrs, **values)
-        attrs = self._maybe_improve_nox_tier_guess(attrs, values)
+        if 'engine_nox_tier' not in values:
+            attrs = self._maybe_improve_nox_tier_guess(attrs, values)
         return attrs
 
     def _guess_missing_attrs(self, attrs, **values):

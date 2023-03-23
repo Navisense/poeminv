@@ -696,6 +696,34 @@ class TestVesselInfoGuesser:
                 keel_laid_year=None, year_of_build=2005),
             has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER3))
 
+    def test_uses_given_nox_tier_if_keel_laid_year_given(
+            self, make_guesser, make_vessel_info_attrs):
+        guesser = make_guesser([
+            ({'keel_laid_year': 2000},
+             make_vessel_info_attrs(
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER1)),])
+        assert_that(
+            guesser.guess_missing_vessel_info(
+                engine_category=cfg.EngineCategory.C3, keel_laid_year=2000,
+                engine_nox_tier=cfg.EngineNOxTier.TIER3),
+            has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER3))
+
+    def test_uses_given_nox_tier_if_keel_laid_year_derived_from_year_of_build(
+            self, make_guesser, make_vessel_info_attrs):
+        guesser = make_guesser([
+            ({'keel_laid_year': 2002},
+             make_vessel_info_attrs(
+                 only_attrs=['engine_nox_tier'],
+                 engine_nox_tier=cfg.EngineNOxTier.TIER1)),],
+                               build_times=[({}, 3)])
+        assert_that(
+            guesser.guess_missing_vessel_info(
+                engine_category=cfg.EngineCategory.C3,
+                ship_type='container_ship', keel_laid_year=None,
+                year_of_build=2005, engine_nox_tier=cfg.EngineNOxTier.TIER3),
+            has_entries(engine_nox_tier=cfg.EngineNOxTier.TIER3))
+
     def test_construction_raises_on_invalid_attr_name(
             self, make_guesser, make_vessel_info_attrs):
         with pytest.raises(ValueError):
