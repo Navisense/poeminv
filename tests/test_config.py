@@ -86,6 +86,30 @@ class TestRange:
         assert 30 not in cfg.Range(5, 25)
 
 
+class TestCriterion:
+    class C(cfg.Criterion):
+        def _value_fulfills(self, predicate):
+            return predicate(5)
+
+        def matches(self, **values):
+            return True
+
+    def test_init_raises_with_invalid_name(self):
+        with pytest.raises(ValueError):
+            self.C('not_a_valid_name')
+
+    def test_can_register_new_names_as_valid(self):
+        cfg.Criterion.register_name('suddenly_a_valid_name')
+        self.C('suddenly_a_valid_name')
+
+    def test_init_raises_if_value_doesnt_pass_validation(self):
+        cfg.Criterion.register_name('less_than_10', lambda x: x < 10)
+        cfg.Criterion.register_name('less_than_3', lambda x: x < 3)
+        self.C('less_than_10')
+        with pytest.raises(ValueError):
+            self.C('less_than_3')
+
+
 class TestEqualsCriterion:
     def test_matches_equal(self):
         criterion = cfg.EqualsCriterion('length', 5)
@@ -491,10 +515,10 @@ class TestVesselInfoGuesser:
                 ship_type=existing_attrs['ship_type'])
         guesser = make_guesser([
             ({'length': {'ge': 0, 'lt': 100},
-              'width': 'x'}, make_vessel_info_attrs()),
+              'width': 3.14159}, make_vessel_info_attrs()),
             ({'length': {'ge': 100, 'lt': 200},
-              'width': 'y'}, make_vessel_info_attrs()),
-            ({'length': {'ge': 100, 'lt': 200}, 'width': 'x'}, attrs),
+              'width': 2.71828}, make_vessel_info_attrs()),
+            ({'length': {'ge': 100, 'lt': 200}, 'width': 3.14159}, attrs),
             ({}, make_vessel_info_attrs()),])
         for missing_attr in missing_attrs:
             if attr_none:
@@ -502,7 +526,7 @@ class TestVesselInfoGuesser:
             else:
                 del existing_attrs[missing_attr]
         guess = guesser.guess_missing_vessel_info(
-            length=150, width='x', **existing_attrs)
+            length=150, width=3.14159, **existing_attrs)
         assert_that(
             guess,
             has_entries({

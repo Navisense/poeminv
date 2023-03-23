@@ -124,6 +124,9 @@ and `engine_group` the library exports enums with valid values. `ship_type` must
 be a key in `poeminv.VALID_SHIP_TYPE_SIZE_UNITS`, which is a dictionary mapping
 ship types to valid `size_unit`s for that ship type.
 
+You can specify additional keys that can be used in match configs via
+`Criterion.register_name()`.
+
 Criteria can be specified in different ways:
 
 - a constant, in which case the criterion matches if values are equal

@@ -20,9 +20,11 @@ import abc
 import collections.abc as ca
 import dataclasses as dc
 import enum
+import functools as ft
 import itertools as it
 import logging
 import numbers as nr
+import operator as op
 import typing as t
 
 import poeminv.event as ev
@@ -122,45 +124,65 @@ class Range:
         return self._ge <= value < self._lt
 
 
-class Criterion(abc.ABC):
+class CriterionMeta(abc.ABCMeta):
+    def __new__(cls, *args, **kwargs):
+        instance = super().__new__(cls, *args, **kwargs)
+        if not hasattr(instance, '_name_validators'):
+            non_negative = ft.partial(op.le, 0)
+            instance._name_validators = {
+                'max_speed': non_negative,
+                'engine_kw': non_negative,
+                'engine_rpm': non_negative,
+                'engine_category': ft.partial(op.contains, EngineCategory),
+                'engine_nox_tier': ft.partial(op.contains, EngineNOxTier),
+                'ship_type': ft.partial(
+                    op.contains, VALID_SHIP_TYPE_SIZE_UNITS),
+                'size': non_negative,
+                'size_unit': ft.partial(op.contains, ShipSizeUnit),
+                'engine_group': ft.partial(op.contains, EngineGroup),
+                'length': non_negative,
+                'width': non_negative,
+                'ais_type': None,
+                'keel_laid_year': None,}
+        return instance
+
+    def register_name(
+            cls, name: str,
+            validation_predicate: t.Callable[[t.Any], bool] = None) -> None:
+        """
+        Register a criterion name.
+
+        Registering a name allows you to use criteria with it. You can
+        optionally pass a validation predicate that values specified with this
+        name must fulfill.
+        """
+        if name in cls._name_validators:
+            raise ValueError(f'{name} was already registered.')
+        cls._name_validators[name] = validation_predicate
+
+
+class Criterion(metaclass=CriterionMeta):
     """
     A criterion attached to a name.
 
     Represents a criterion to be fulfilled by a value attached to a certain
     name.
     """
-    VALID_NAMES = (
-        {f.name
-         for f in dc.fields(VesselInfo)}
-        | {
-            'engine_group', 'length', 'width', 'ais_type', 'does_tug_jobs',
-            'does_pilot_transfer', 'keel_laid_year'})
-
     def __init__(self, name: str) -> None:
         self.name = name
         self._assert_valid()
 
     def _assert_valid(self):
-        if self.name not in self.VALID_NAMES:
+        try:
+            validation_predicate = self._name_validators[self.name]
+        except KeyError:
             raise ValueError(f'Invalid criterion name {self.name}.')
-        if self.name == 'ship_type' and not self._value_is_one_of(
-                VALID_SHIP_TYPE_SIZE_UNITS):
-            raise ValueError(f'Invalid ship type for {self.name}.')
-        if self.name == 'size_unit' and not self._value_is_one_of(
-                ShipSizeUnit):
-            raise ValueError(f'Invalid size unit for {self.name}.')
-        if self.name == 'engine_category' and not self._value_is_one_of(
-                EngineCategory):
-            raise ValueError(f'Invalid engine category for {self.name}.')
-        if self.name == 'engine_nox_tier' and not self._value_is_one_of(
-                EngineNOxTier):
-            raise ValueError(f'Invalid engine NOx tier for {self.name}.')
-        if self.name == 'engine_group' and not self._value_is_one_of(
-                EngineGroup):
-            raise ValueError(f'Invalid engine group for {self.name}.')
+        if validation_predicate and not self._value_fulfills(
+                validation_predicate):
+            raise ValueError(f'Invalid {self.name}.')
 
     @abc.abstractmethod
-    def _value_is_one_of(self, values: ca.Sequence) -> bool:
+    def _value_fulfills(self, predicate: t.Callable[[t.Any], bool]) -> bool:
         raise NotImplementedError
 
     @abc.abstractmethod
@@ -174,8 +196,8 @@ class EqualsCriterion(Criterion):
         self._value = value
         super().__init__(name)
 
-    def _value_is_one_of(self, values):
-        return self._value in values
+    def _value_fulfills(self, predicate):
+        return predicate(self._value)
 
     def matches(self, **values: t.Any) -> bool:
         try:
@@ -189,8 +211,8 @@ class RangeCriterion(Criterion):
         self._range = Range(ge, lt)
         super().__init__(name)
 
-    def _value_is_one_of(self, values):
-        return False
+    def _value_fulfills(self, predicate):
+        return True
 
     def matches(self, **values: t.Any) -> bool:
         try:
@@ -206,8 +228,8 @@ class DisjunctionCriterion(Criterion):
         self._criteria = criteria
         super().__init__(name)
 
-    def _value_is_one_of(self, values):
-        return all(c._value_is_one_of(values) for c in self._criteria)
+    def _value_fulfills(self, predicate):
+        return all(c._value_fulfills(predicate) for c in self._criteria)
 
     def matches(self, **values: t.Any) -> bool:
         return any(c.matches(**values) for c in self._criteria)

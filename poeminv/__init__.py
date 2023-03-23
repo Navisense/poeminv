@@ -18,6 +18,7 @@
 
 from poeminv.config import (
     Config,
+    Criterion,
     EngineCategory,
     EngineNOxTier,
     EngineGroup,
