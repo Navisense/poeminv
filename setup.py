@@ -28,7 +28,7 @@ with (requirements_path / 'dev.txt').open() as f:
     dev_requirements = test_requirements + f.readlines()
 
 setuptools.setup(
-    name='poeminv', version='0.2',
+    name='poeminv', version='1.0',
     description='Tools to create emission inventories for ports.',
     author="Navisense GmbH", author_email="support@navisense.de",
     url='https://github.com/Navisense/poeminv', python_requires='>=3.11',
