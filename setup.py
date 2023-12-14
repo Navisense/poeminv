@@ -30,7 +30,7 @@ with (pathlib.Path(__file__).parent / 'README.md').absolute().open() as f:
     readme = f.read()
 
 setuptools.setup(
-    name='poeminv', version='1.0.1',
+    name='poeminv', version='1.1.0',
     description='Tools to create emission inventories for ports.',
     long_description_content_type='text/markdown', long_description=readme,
     author="Navisense GmbH", author_email="support@navisense.de",

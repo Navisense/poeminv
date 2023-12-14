@@ -678,7 +678,7 @@ class Config:
     def from_yaml_path(cls, yaml_path: str) -> t.Self:
         import yaml
         with open(yaml_path, 'rb') as f:
-            return Config(yaml.load(f, yaml.Loader))
+            return cls(yaml.load(f, yaml.Loader))
 
     @property
     def default_vessel_info(self) -> VesselInfo:
