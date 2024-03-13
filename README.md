@@ -3,8 +3,7 @@
 `poeminv` is a Python library containing a set of tools for automated creation
 of port emission inventories.
 
-It is based on EPA Ports Emissions Inventory Guidance : 
-https://nepis.epa.gov/Exe/ZyPDF.cgi?Dockey=P1014J1S.pdf
+It is based on EPA Ports Emissions Inventory Guidance :  https://nepis.epa.gov/Exe/ZyPDF.cgi?Dockey=P1014J1S.pdf
 
 A Demo can be seen under : https://app.porttracker.co/emissions
 
